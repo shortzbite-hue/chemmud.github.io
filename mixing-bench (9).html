@@ -1,0 +1,3323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Mixing Bench — a chemistry sandbox</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #eef1e8;
+    --bg-line: rgba(31,45,61,0.07);
+    --panel: #fbfcf9;
+    --panel-border: rgba(31,45,61,0.14);
+    --ink: #1f2d3d;
+    --ink-soft: #57646f;
+    --ink-faint: #8a9299;
+    --copper: #2f8f5b;
+    --strontium: #c94a4a;
+    --sodium: #e0973a;
+    --lithium: #b93d72;
+    --danger: #a8281f;
+    --danger-bg: #fbe9e6;
+    --shadow: 0 1px 2px rgba(31,45,61,0.06), 0 8px 24px -12px rgba(31,45,61,0.18);
+    --radius: 10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      linear-gradient(var(--bg-line) 1px, transparent 1px) 0 0/28px 28px,
+      linear-gradient(90deg, var(--bg-line) 1px, transparent 1px) 0 0/28px 28px,
+      var(--bg);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'IBM Plex Mono', monospace;}
+  a{color:inherit;}
+
+  /* ---------- Header ---------- */
+  header{
+    padding:36px 24px 20px;
+    max-width:1180px;
+    margin:0 auto;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:24px;
+    flex-wrap:wrap;
+    border-bottom:1px solid var(--panel-border);
+  }
+  .brand{display:flex; align-items:baseline; gap:14px;}
+  .brand-mark{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:700;
+    font-size:13px;
+    letter-spacing:0.14em;
+    background:var(--ink);
+    color:var(--bg);
+    padding:4px 8px;
+    border-radius:4px;
+  }
+  h1{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:clamp(28px, 4vw, 40px);
+    font-weight:700;
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  .subtitle{
+    color:var(--ink-soft);
+    font-size:15px;
+    max-width:420px;
+    line-height:1.5;
+    margin:0;
+  }
+  .entry-counter{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--ink-faint);
+    text-align:right;
+    line-height:1.6;
+  }
+  .entry-counter b{color:var(--ink); font-size:22px; display:block; font-weight:600;}
+
+  /* ---------- Layout ---------- */
+  main{
+    max-width:1180px;
+    margin:0 auto;
+    padding:32px 24px 80px;
+    display:grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap:28px;
+  }
+  @media (max-width: 900px){ main{grid-template-columns:1fr;} }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+  }
+  .panel-head{
+    padding:16px 20px;
+    border-bottom:1px solid var(--panel-border);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .panel-head h2{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    margin:0;
+    color:var(--ink-soft);
+    font-weight:600;
+  }
+  .panel-head span{font-size:11px; color:var(--ink-faint); font-family:'IBM Plex Mono', monospace;}
+
+  /* ---------- Shelf ---------- */
+  .shelf{padding:18px 20px 22px;}
+  .shelf-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(96px, 1fr));
+    gap:10px;
+  }
+  .vial{
+    border:1px solid var(--panel-border);
+    background:#fff;
+    border-radius:8px;
+    padding:10px 8px 8px;
+    cursor:pointer;
+    text-align:center;
+    transition:transform .12s ease, border-color .12s ease, box-shadow .12s ease;
+    user-select:none;
+  }
+  .vial:hover{transform:translateY(-2px); border-color:var(--ink-faint);}
+  .vial.selected{
+    border-color:var(--ink);
+    box-shadow:0 0 0 2px var(--ink);
+    background:#f4f4ef;
+  }
+  .vial .glyph{
+    width:34px;height:34px;
+    border-radius:50%;
+    margin:0 auto 6px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:16px;
+    border:2px solid var(--panel-border);
+  }
+  .vial .name{font-size:11.5px; font-weight:500; line-height:1.25;}
+  .vial .formula{font-family:'IBM Plex Mono', monospace; font-size:9.5px; color:var(--ink-faint); margin-top:2px;}
+
+  /* ---------- Bench (mixing area) ---------- */
+  .bench{padding:20px 20px 24px;}
+  .slots{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:16px;
+    margin-bottom:18px;
+  }
+  .slot{
+    width:120px; height:64px;
+    border:1.5px dashed var(--panel-border);
+    border-radius:8px;
+    display:flex; align-items:center; justify-content:center;
+    flex-direction:column;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--ink-faint);
+    text-align:center;
+    gap:2px;
+    padding:4px;
+  }
+  .slot.filled{border-style:solid; border-color:var(--ink); color:var(--ink); background:#f4f4ef;}
+  .slot .glyph{font-size:18px;}
+  .plus{font-family:'IBM Plex Mono', monospace; color:var(--ink-faint); font-size:18px;}
+
+  .beaker-wrap{
+    display:flex; justify-content:center; margin:14px 0 10px;
+    position:relative;
+  }
+  .beaker-wrap.shake{animation:shake .5s;}
+  @keyframes shake{
+    10%,90%{transform:translateX(-2px)}
+    20%,80%{transform:translateX(3px)}
+    30%,50%,70%{transform:translateX(-5px)}
+    40%,60%{transform:translateX(5px)}
+  }
+  svg#beaker{width:150px; height:180px; overflow:visible;}
+  .bubble{
+    fill:#ffffff;
+    opacity:0.55;
+  }
+
+  .actions{display:flex; justify-content:center; gap:10px; margin-top:8px;}
+  button{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    font-weight:600;
+    letter-spacing:0.03em;
+    border-radius:7px;
+    padding:11px 18px;
+    cursor:pointer;
+    border:1px solid var(--ink);
+    background:var(--ink);
+    color:var(--bg);
+    transition: opacity .15s ease, transform .1s ease;
+  }
+  button:disabled{opacity:0.35; cursor:not-allowed;}
+  button.secondary{background:transparent; color:var(--ink); border-color:var(--panel-border);}
+  button:not(:disabled):hover{transform:translateY(-1px);}
+
+  /* ---------- Result card ---------- */
+  .result{
+    margin-top:18px;
+    border-top:1px solid var(--panel-border);
+    padding-top:16px;
+    min-height:64px;
+  }
+  .result .placeholder{
+    color:var(--ink-faint);
+    font-size:13px;
+    text-align:center;
+    padding:12px 0;
+  }
+  .result-card{
+    border:1px solid var(--panel-border);
+    border-radius:8px;
+    padding:14px 16px;
+    background:#fff;
+  }
+  .result-card.danger{
+    border-color:var(--danger);
+    background:var(--danger-bg);
+  }
+  .result-title{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:700;
+    font-size:14px;
+    margin:0 0 6px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .result-card.danger .result-title{color:var(--danger);}
+  .result-desc{font-size:13.5px; line-height:1.55; color:var(--ink-soft); margin:0;}
+  .result-card.danger .result-desc{color:#7a2018;}
+  .video-link{
+    display:inline-flex; align-items:center; gap:6px;
+    margin-top:10px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px;
+    text-decoration:none;
+    color:var(--ink);
+    border-bottom:1px solid var(--ink);
+    padding-bottom:1px;
+  }
+  .tag-row{margin-top:10px; display:flex; gap:6px; flex-wrap:wrap;}
+  .tag{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    padding:2px 7px;
+    border-radius:20px;
+    border:1px solid var(--panel-border);
+    color:var(--ink-faint);
+  }
+
+  /* ---------- Notebook log ---------- */
+  .log{max-height:640px; overflow-y:auto;}
+  .log-empty{padding:28px 20px; color:var(--ink-faint); font-size:13px; text-align:center;}
+  .log-entry{
+    padding:14px 20px;
+    border-bottom:1px solid var(--panel-border);
+  }
+  .log-entry:last-child{border-bottom:none;}
+  .log-entry .meta{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    color:var(--ink-faint);
+    margin-bottom:4px;
+    display:flex; justify-content:space-between;
+  }
+  .log-entry .headline{font-size:13px; font-weight:600; margin:0 0 3px;}
+  .log-entry .headline.danger{color:var(--danger);}
+  .log-entry p{margin:0; font-size:12.5px; color:var(--ink-soft); line-height:1.5;}
+
+  footer{
+    max-width:1180px; margin:0 auto; padding:0 24px 50px;
+    color:var(--ink-faint); font-size:11.5px; line-height:1.6;
+    font-family:'IBM Plex Mono', monospace;
+  }
+  footer strong{color:var(--ink-soft);}
+
+  ::-webkit-scrollbar{width:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--panel-border); border-radius:8px;}
+
+  /* ---------- Shelf controls: search + tabs ---------- */
+  .shelf-controls{padding:14px 20px 0;}
+  .shelf-search{
+    width:100%;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    padding:9px 12px;
+    border-radius:7px;
+    border:1px solid var(--panel-border);
+    background:#fff;
+    color:var(--ink);
+    margin-bottom:10px;
+  }
+  .shelf-search:focus{outline:none; border-color:var(--ink);}
+  .tab-row{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;}
+  .tab-chip{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    padding:5px 10px;
+    border-radius:20px;
+    border:1px solid var(--panel-border);
+    background:#fff;
+    color:var(--ink-soft);
+    cursor:pointer;
+    user-select:none;
+  }
+  .tab-chip.active{background:var(--ink); color:var(--bg); border-color:var(--ink);}
+  .shelf-grid{max-height:280px; overflow-y:auto; padding-right:2px;}
+  .vial.el .glyph{font-family:'IBM Plex Mono', monospace; font-weight:700; font-size:13px;}
+  .vial .num{position:absolute; top:4px; right:6px; font-size:8px; color:var(--ink-faint); font-family:'IBM Plex Mono', monospace;}
+  .vial{position:relative;}
+
+  /* ---------- Slots (up to 4) + quantity sliders ---------- */
+  .slots{flex-wrap:wrap;}
+  .slot-unit{display:flex; flex-direction:column; align-items:center; gap:6px;}
+  .slot{width:104px; height:58px;}
+  .qty-row{display:flex; flex-direction:column; align-items:center; gap:2px; width:104px;}
+  .qty-row input[type=range]{width:100%;}
+  .qty-label{font-family:'IBM Plex Mono', monospace; font-size:9.5px; color:var(--ink-faint);}
+
+  /* ---------- Generic range slider styling ---------- */
+  input[type=range]{
+    -webkit-appearance:none; appearance:none;
+    height:4px; border-radius:4px;
+    background:var(--panel-border);
+    cursor:pointer;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none;
+    width:14px; height:14px; border-radius:50%;
+    background:var(--ink); border:2px solid var(--panel);
+    box-shadow:0 0 0 1px var(--ink);
+    cursor:pointer; margin-top:0;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:14px; height:14px; border-radius:50%;
+    background:var(--ink); border:2px solid var(--panel);
+    cursor:pointer;
+  }
+
+  /* ---------- Vessel + temperature control bar ---------- */
+  .control-bar{
+    display:flex; flex-wrap:wrap; gap:18px;
+    justify-content:center; align-items:flex-end;
+    margin-bottom:16px; padding-bottom:14px;
+    border-bottom:1px solid var(--panel-border);
+  }
+  .control-group{display:flex; flex-direction:column; gap:6px; align-items:center;}
+  .control-label{font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-faint);}
+  .vessel-row{display:flex; gap:6px;}
+  .vessel-btn{
+    font-family:'IBM Plex Mono', monospace; font-size:10.5px;
+    padding:7px 10px; border-radius:7px;
+    border:1px solid var(--panel-border); background:#fff; color:var(--ink-soft);
+    cursor:pointer;
+  }
+  .vessel-btn.active{border-color:var(--ink); background:var(--ink); color:var(--bg);}
+  .temp-row{display:flex; align-items:center; gap:8px;}
+  .temp-row input[type=range]{width:130px;}
+  .temp-readout{font-family:'IBM Plex Mono', monospace; font-size:12px; font-weight:600; min-width:46px; text-align:right;}
+  .temp-readout.cold{color:#3d76b9;}
+  .temp-readout.hot{color:var(--danger);}
+  .sound-btn{
+    font-family:'IBM Plex Mono', monospace; font-size:11px;
+    padding:8px 12px; border-radius:7px;
+    border:1px solid var(--panel-border); background:#fff; color:var(--ink-soft);
+    cursor:pointer; display:flex; align-items:center; gap:6px;
+  }
+  .sound-btn.on{border-color:var(--ink); color:var(--ink);}
+
+  /* ---------- Graduation marks on vessel ---------- */
+  .grad-line{stroke:var(--ink-faint); stroke-width:1;}
+  .grad-text{font-family:'IBM Plex Mono', monospace; font-size:7px; fill:var(--ink-faint);}
+
+  /* ---------- Smoke / explosion overlays ---------- */
+  .smoke-puff{fill:#c9c9c9; opacity:0.5;}
+  .flash-overlay{
+    position:absolute; inset:0; background:#fff;
+    opacity:0; pointer-events:none; border-radius:8px;
+  }
+  .flash-overlay.go{animation:flashpop .4s ease-out;}
+  @keyframes flashpop{
+    0%{opacity:0.9;} 100%{opacity:0;}
+  }
+  .beaker-wrap{position:relative;}
+
+  /* ---------- Badges / achievements ---------- */
+  .badge-strip{
+    display:flex; flex-wrap:wrap; gap:6px;
+    padding:12px 20px; border-bottom:1px solid var(--panel-border);
+  }
+  .badge{
+    font-family:'IBM Plex Mono', monospace; font-size:10px;
+    padding:4px 9px; border-radius:20px;
+    border:1px solid var(--panel-border); color:var(--ink-faint);
+    background:#fff;
+  }
+  .badge.earned{border-color:var(--sodium); color:var(--ink); background:#fbf1e2;}
+  .toast{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--ink); color:var(--bg);
+    font-family:'IBM Plex Mono', monospace; font-size:12px;
+    padding:10px 16px; border-radius:8px;
+    opacity:0; transition:opacity .25s ease, transform .25s ease;
+    pointer-events:none; z-index:50; box-shadow:var(--shadow);
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  /* ---------- Extra action row ---------- */
+  .extra-actions{display:flex; justify-content:center; gap:8px; margin-top:10px; flex-wrap:wrap;}
+  .extra-actions button{padding:8px 12px; font-size:11px;}
+
+  .multi-note{
+    text-align:center; font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px; color:var(--ink-faint); margin-top:4px;
+  }
+
+  /* ---------- Observed-detail chips on every reaction result ---------- */
+  .detail-grid{
+    display:grid; grid-template-columns:repeat(2,1fr); gap:6px;
+    margin-top:10px;
+  }
+  .detail-chip{
+    display:flex; align-items:center; gap:6px;
+    font-family:'IBM Plex Mono', monospace; font-size:10.5px;
+    padding:6px 9px; border-radius:6px;
+    background:#fff; border:1px solid var(--panel-border);
+    color:var(--ink-soft);
+  }
+  .detail-chip b{color:var(--ink); font-weight:600;}
+
+  /* ---------- Extra sections wrapper ---------- */
+  .extra-section{max-width:1180px; margin:0 auto 28px; padding:0 20px;}
+  .extra-grid{display:grid; grid-template-columns:1.3fr 1fr; gap:20px;}
+  @media(max-width:900px){ .extra-grid{grid-template-columns:1fr;} }
+
+  /* ---------- NCERT reaction cards ---------- */
+  .ncert-tabs{display:flex; gap:6px; flex-wrap:wrap; padding:14px 20px 0;}
+  .ncert-list{max-height:520px; overflow-y:auto; padding:14px 20px 20px; display:flex; flex-direction:column; gap:12px;}
+  .ncert-card{
+    border:1px solid var(--panel-border); border-radius:9px;
+    padding:12px 14px; background:#fdfbf5;
+  }
+  .ncert-card .meta-row{
+    display:flex; justify-content:space-between; align-items:center;
+    font-family:'IBM Plex Mono', monospace; font-size:10px; color:var(--ink-faint);
+    margin-bottom:6px;
+  }
+  .ncert-class-badge{
+    background:var(--ink); color:var(--bg);
+    padding:2px 8px; border-radius:12px; font-weight:600;
+  }
+  .ncert-card h4{font-family:'Fraunces', serif; font-size:15px; margin-bottom:4px; font-weight:600;}
+  .ncert-equation{
+    font-family:'IBM Plex Mono', monospace; font-size:12px;
+    background:#fff; border:1px solid var(--panel-border); border-radius:6px;
+    padding:6px 9px; margin-bottom:8px; display:inline-block;
+  }
+  .ncert-card p{font-size:13px; line-height:1.55; color:var(--ink-soft); margin-bottom:8px;}
+  .ncert-card .detail-grid{margin-bottom:8px;}
+  .try-btn{
+    font-family:'IBM Plex Mono', monospace; font-size:10.5px;
+    padding:6px 11px; border-radius:6px;
+    border:1px solid var(--ink); background:var(--ink); color:var(--bg);
+    cursor:pointer;
+  }
+  .try-btn:disabled{opacity:0.35; cursor:not-allowed; background:#fff; color:var(--ink-faint); border-color:var(--panel-border);}
+
+  /* ---------- Know Element panel ---------- */
+  .know-element-body{padding:16px 20px 20px;}
+  .know-search-row{display:flex; gap:8px; margin-bottom:12px;}
+  .know-search-row select{
+    flex:1; font-family:'IBM Plex Mono', monospace; font-size:12.5px;
+    padding:9px 10px; border-radius:7px; border:1px solid var(--panel-border);
+    background:#fff; color:var(--ink);
+  }
+  .element-card{
+    border:1px solid var(--panel-border); border-radius:10px;
+    padding:18px; text-align:center; background:#fdfbf5;
+  }
+  .element-card .big-symbol{
+    width:64px; height:64px; margin:0 auto 10px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'IBM Plex Mono', monospace; font-weight:700; font-size:26px;
+    border-radius:10px; border:2px solid var(--panel-border);
+  }
+  .element-card h3{font-family:'Fraunces', serif; font-size:20px; margin-bottom:2px;}
+  .element-card .el-sub{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--ink-faint); margin-bottom:12px;}
+  .el-props{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; text-align:left;}
+  .el-prop{
+    font-family:'IBM Plex Mono', monospace; font-size:10.5px;
+    background:#fff; border:1px solid var(--panel-border); border-radius:6px;
+    padding:7px 9px;
+  }
+  .el-prop span{display:block; color:var(--ink-faint); font-size:9px; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:2px;}
+  .element-card .el-blurb{font-size:13px; line-height:1.6; color:var(--ink-soft); text-align:left; margin-bottom:14px;}
+  .know-placeholder{text-align:center; color:var(--ink-faint); font-family:'IBM Plex Mono', monospace; font-size:12px; padding:40px 10px;}
+
+  /* ---------- Balanced equation + pH meter in result card ---------- */
+  .equation-box{
+    font-family:'IBM Plex Mono', monospace; font-size:12.5px;
+    background:#fff; border:1px solid var(--panel-border); border-radius:7px;
+    padding:8px 11px; margin:10px 0; display:inline-block;
+  }
+  .equation-box span{color:var(--ink-faint); font-size:10px; text-transform:uppercase; letter-spacing:0.06em; display:block; margin-bottom:3px;}
+  .ph-meter{margin:12px 0;}
+  .ph-meter-head{display:flex; justify-content:space-between; align-items:baseline; font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--ink-faint); margin-bottom:5px;}
+  .ph-value{color:var(--ink); font-weight:600; font-size:12px;}
+  .ph-bar{
+    position:relative; height:10px; border-radius:6px;
+    background:linear-gradient(90deg, #d9534f 0%, #e8a33d 22%, #e8d23d 40%, #7fbf6b 50%, #5aa0c9 65%, #4f6fc9 82%, #7a4fc9 100%);
+    border:1px solid var(--panel-border);
+  }
+  .ph-marker{
+    position:absolute; top:-4px; width:3px; height:18px;
+    background:var(--ink); border-radius:2px; transform:translateX(-1.5px);
+    box-shadow:0 0 0 2px #fff;
+  }
+  .ph-scale{display:flex; justify-content:space-between; font-family:'IBM Plex Mono', monospace; font-size:9px; color:var(--ink-faint); margin-top:3px;}
+
+  /* ---------- Experiment Bench: drag & drop equipment ---------- */
+  .equip-intro{padding:12px 20px 0; font-size:12.5px; color:var(--ink-soft); line-height:1.6;}
+  .caution-banner{
+    margin:10px 20px 0; padding:10px 14px; border-radius:8px;
+    background:#fbeceb; border:1px solid #e3b4ae; color:#7a2a22;
+    font-size:12px; line-height:1.55;
+  }
+  .exp-layout{display:grid; grid-template-columns:220px 1fr; gap:16px; padding:14px 20px 0;}
+  @media(max-width:820px){ .exp-layout{grid-template-columns:1fr;} }
+  .exp-sidebar{
+    border:1px solid var(--panel-border); border-radius:10px; background:#fdfbf5;
+    padding:4px 4px 12px; max-height:660px; overflow-y:auto;
+  }
+  .exp-main{display:flex; flex-direction:column;}
+  .equip-section-label{
+    padding:12px 10px 4px; font-family:'IBM Plex Mono', monospace;
+    font-size:9.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-faint);
+  }
+  .equip-palette{display:flex; flex-direction:column; gap:6px; padding:0 8px 6px;}
+  .equip-chip{
+    display:flex; flex-direction:row; align-items:center; gap:8px;
+    width:100%; padding:6px 8px; border-radius:8px;
+    border:1px solid var(--panel-border); background:#fff;
+    cursor:grab; user-select:none;
+    font-family:'IBM Plex Mono', monospace; font-size:10px; text-align:left; color:var(--ink-soft);
+  }
+  .equip-chip:active{cursor:grabbing;}
+  .equip-chip .equip-icon{flex-shrink:0;}
+  .equip-chip .equip-icon svg{width:36px; height:36px; display:block;}
+  .reagent-chip .equip-icon{width:30px; height:30px; display:flex; align-items:center; justify-content:center;}
+  .reagent-swatch{
+    width:26px; height:26px; border-radius:50%;
+    border:2px solid var(--panel-border); flex-shrink:0;
+  }
+  .equip-canvas{
+    position:relative; min-height:600px;
+    border:2px dashed var(--panel-border); border-radius:12px;
+    background:repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(31,45,61,0.035) 40px);
+    overflow:hidden;
+  }
+  .canvas-hint{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    color:var(--ink-faint); font-family:'IBM Plex Mono', monospace; font-size:13px;
+    text-align:center; padding:30px; pointer-events:none;
+  }
+  .placed-equip{
+    position:absolute; transform:translate(-50%,-50%);
+    display:flex; flex-direction:column; align-items:center;
+    cursor:pointer; width:160px;
+  }
+  .placed-equip svg{width:128px; height:128px; display:block;}
+  .placed-label{
+    font-family:'IBM Plex Mono', monospace; font-size:11px;
+    color:var(--ink-faint); margin-top:4px; text-align:center; line-height:1.35;
+  }
+  .remove-x{
+    position:absolute; top:-4px; right:14px; width:22px; height:22px;
+    border-radius:50%; border:1px solid var(--panel-border); background:#fff;
+    font-size:11px; line-height:20px; cursor:pointer; opacity:0; transition:opacity .15s;
+  }
+  .placed-equip:hover .remove-x{opacity:1;}
+  .placed-equip .flame{opacity:0; transition:opacity .2s;}
+  .placed-equip.lit .flame{opacity:1; animation:flicker 0.55s infinite alternate;}
+  @keyframes flicker{0%{transform:scaleY(1) scaleX(1);} 100%{transform:scaleY(1.18) scaleX(0.88);}}
+  .placed-equip.spin svg{animation:rodwiggle 0.5s ease-in-out infinite;}
+  @keyframes rodwiggle{0%{transform:rotate(-9deg);} 50%{transform:rotate(9deg);} 100%{transform:rotate(-9deg);}}
+  .placed-equip.active::before{
+    content:""; position:absolute; top:14px; left:50%; width:40px; height:40px;
+    margin-left:-20px; border-radius:50%; border:2px solid #5a96dc;
+    animation:scopepulse 1.3s ease-out infinite;
+  }
+  @keyframes scopepulse{0%{transform:scale(0.75); opacity:0.7;} 100%{transform:scale(1.3); opacity:0;}}
+  .placed-equip.drop-hover{
+    background:rgba(90,150,220,0.12); border-radius:16px;
+    box-shadow:0 0 0 3px rgba(90,150,220,0.55);
+  }
+  .placed-equip.drop-hover .placed-label{color:#3d6fa8; font-weight:600;}
+  .gas-bubble{
+    position:absolute; width:8px; height:8px; border-radius:50%;
+    pointer-events:none; z-index:5;
+  }
+  .vessel-flash{
+    position:absolute; width:220px; height:220px; margin-left:-110px; margin-top:-110px;
+    border-radius:50%; background:radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(242,193,78,0.55) 40%, transparent 70%);
+    pointer-events:none; z-index:6;
+    animation:vesselflash 0.5s ease-out forwards;
+  }
+  @keyframes vesselflash{ 0%{opacity:1; transform:scale(0.3);} 100%{opacity:0; transform:scale(1.3);} }
+  .placed-equip.explode-shake{ animation:explodeshake 0.45s ease-in-out; }
+  @keyframes explodeshake{
+    0%,100%{ transform:translate(-50%,-50%) rotate(0deg); }
+    20%{ transform:translate(-56%,-46%) rotate(-4deg); }
+    40%{ transform:translate(-44%,-54%) rotate(4deg); }
+    60%{ transform:translate(-54%,-48%) rotate(-3deg); }
+    80%{ transform:translate(-46%,-52%) rotate(3deg); }
+  }
+  .narrator-panel{
+    margin-top:14px; border:1px solid var(--panel-border); border-radius:10px;
+    background:#fdfbf5; overflow:hidden;
+  }
+  .narrator-head{
+    padding:9px 14px; font-family:'IBM Plex Mono', monospace; font-size:11px;
+    text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-faint);
+    border-bottom:1px solid var(--panel-border); background:#f5f1e4;
+  }
+  .narrator-feed{max-height:190px; overflow-y:auto; padding:10px 14px;}
+  .narrator-empty{
+    font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--ink-faint);
+    text-align:center; padding:14px 4px;
+  }
+  .narrator-line{
+    font-size:13px; line-height:1.55; color:var(--ink); margin-bottom:8px;
+    padding-bottom:8px; border-bottom:1px dashed var(--panel-border);
+  }
+  .narrator-line:last-child{border-bottom:none; margin-bottom:0; padding-bottom:0;}
+  .narrator-time{
+    font-family:'IBM Plex Mono', monospace; font-size:10px; color:var(--ink-faint);
+    margin-right:6px;
+  }
+  .checklist{display:flex; flex-wrap:wrap; gap:8px; padding:14px 0 14px;}
+  .check-row{
+    font-family:'IBM Plex Mono', monospace; font-size:11px;
+    padding:6px 10px; border-radius:6px;
+    border:1px solid var(--panel-border); background:#fff; color:var(--ink-faint);
+  }
+  .check-row.ok{color:var(--ink); border-color:var(--sodium); background:#fbf1e2;}
+  .exp-actions{padding:0 0 20px; display:flex; gap:8px; flex-wrap:wrap;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="brand-mark">LAB / 07</span>
+    <div>
+      <h1>The Mixing Bench</h1>
+      <p class="subtitle">Pick up to four substances — household items or any element on the periodic table — set a quantity, vessel, and temperature, then mix. Every entry gets logged in the notebook on the right.</p>
+    </div>
+  </div>
+  <div class="entry-counter">
+    experiments run
+    <b id="counterNum">0</b>
+  </div>
+</header>
+
+<main>
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Shelf — <span id="shelfCount">22</span> substances</h2>
+      <span>tap up to four</span>
+    </div>
+    <div class="shelf-controls">
+      <input class="shelf-search mono" id="shelfSearch" type="text" placeholder="search by name or symbol…">
+      <div class="tab-row" id="tabRow"></div>
+    </div>
+    <div class="shelf">
+      <div class="shelf-grid" id="shelfGrid"></div>
+    </div>
+    <div class="badge-strip" id="badgeStrip"></div>
+
+    <div class="bench panel" style="margin:0 20px 20px; border-radius:8px;">
+      <div class="panel-head">
+        <h2>Beaker</h2>
+        <span id="benchHint">select 2 to mix</span>
+      </div>
+      <div style="padding:20px;">
+
+        <div class="control-bar">
+          <div class="control-group">
+            <span class="control-label">Vessel</span>
+            <div class="vessel-row" id="vesselRow"></div>
+          </div>
+          <div class="control-group">
+            <span class="control-label">Temperature</span>
+            <div class="temp-row">
+              <span class="mono" style="font-size:11px; color:var(--ink-faint);">❄</span>
+              <input type="range" id="tempSlider" min="-10" max="150" value="22">
+              <span class="mono" style="font-size:11px; color:var(--ink-faint);">🔥</span>
+            </div>
+            <span class="temp-readout" id="tempReadout">22°C</span>
+          </div>
+          <div class="control-group">
+            <span class="control-label">Sound</span>
+            <button class="sound-btn on" id="soundBtn">🔊 on</button>
+          </div>
+        </div>
+
+        <div class="slots" id="slotsRow"></div>
+
+        <div class="beaker-wrap" id="beakerWrap">
+          <div class="flash-overlay" id="flashOverlay"></div>
+          <svg id="beaker" viewBox="0 0 150 180">
+            <defs>
+              <clipPath id="beakerClip">
+                <path id="beakerPath" d="M 40 20 L 40 60 L 15 165 Q 12 175 25 175 L 125 175 Q 138 175 135 165 L 110 60 L 110 20 Z"/>
+              </clipPath>
+            </defs>
+            <!-- liquid -->
+            <g clip-path="url(#beakerClip)">
+              <rect id="liquid" x="10" y="160" width="130" height="20" fill="#cfe0e8"/>
+              <g id="bubbleGroup"></g>
+              <g id="smokeGroup"></g>
+            </g>
+            <!-- beaker outline -->
+            <path id="beakerOutline" d="M 40 20 L 40 60 L 15 165 Q 12 175 25 175 L 125 175 Q 138 175 135 165 L 110 60 L 110 20 Z"
+                  fill="none" stroke="#1f2d3d" stroke-width="2.5" stroke-linejoin="round"/>
+            <line id="beakerRim" x1="34" y1="18" x2="116" y2="18" stroke="#1f2d3d" stroke-width="2.5" stroke-linecap="round"/>
+            <g id="gradGroup"></g>
+          </svg>
+        </div>
+        <p class="multi-note" id="fillNote">0 mL / 250 mL capacity</p>
+
+        <div class="actions">
+          <button id="mixBtn" disabled>Mix it</button>
+          <button class="secondary" id="clearBtn">Clear beaker</button>
+        </div>
+        <div class="extra-actions">
+          <button class="secondary" id="surpriseBtn">🎲 Surprise me</button>
+          <button class="secondary" id="exportBtn">⬇ Export notebook</button>
+        </div>
+
+        <div class="result" id="resultArea">
+          <p class="placeholder">Your outcome will appear here.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Lab notebook</h2>
+      <span>newest first</span>
+    </div>
+    <div class="log" id="logList">
+      <div class="log-empty">No entries yet. Your first mix will be recorded here, timestamped like a real lab log.</div>
+    </div>
+  </div>
+</main>
+
+<section class="extra-section">
+  <div class="extra-grid">
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2>General Reaction Section <span style="font-weight:400; color:var(--ink-faint); font-size:12px;">— NCERT, Classes 9–12</span></h2>
+        <span id="ncertCount">0 reactions</span>
+      </div>
+      <div class="ncert-tabs" id="ncertTabs"></div>
+      <div class="ncert-list" id="ncertList"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Know Element</h2>
+        <span>look one up</span>
+      </div>
+      <div class="know-element-body">
+        <div class="know-search-row">
+          <select id="knowSelect">
+            <option value="">— choose an element —</option>
+          </select>
+        </div>
+        <div id="knowCard">
+          <div class="know-placeholder">Pick any of the 118 elements to see its symbol, atomic number, category, state, and a quick summary — plus a button to drop it straight into the beaker.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="extra-section">
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Experiment Bench <span style="font-weight:400; color:var(--ink-faint); font-size:12px;">— build your setup</span></h2>
+      <span id="equipCount">0 items placed</span>
+    </div>
+    <p class="equip-intro">Drag equipment and reagents from the tray on the left onto the bench. Drop a reagent onto a vessel to add it, or onto the glass rod and click the rod to stir it in. Click a lit burner to heat things up (drives the temperature slider above). Colours change and gases evolve for real, well-known reactions.</p>
+    <div class="caution-banner">⚠️ <b>Caution:</b> some elements here — sodium, potassium, rubidium, caesium, and other alkali metals — genuinely explode on contact with water in real life. Combining them here triggers a simulated flash, shake, and bang as a safety warning, not an instruction. Never try these outside a professionally supervised demonstration.</div>
+    <div class="exp-layout">
+      <div class="exp-sidebar">
+        <div class="equip-section-label">Equipment</div>
+        <div class="equip-palette" id="equipPalette"></div>
+        <div class="equip-section-label">Reagents — drag onto a vessel or the rod</div>
+        <div class="equip-palette" id="reagentPalette"></div>
+      </div>
+      <div class="exp-main">
+        <div class="equip-canvas" id="equipCanvas">
+          <div class="canvas-hint" id="canvasHint">Drag a beaker, burner, glass rod, and any other equipment here…</div>
+        </div>
+        <div class="narrator-panel">
+          <div class="narrator-head">📝 Lab Notes — what's happening</div>
+          <div class="narrator-feed" id="narratorFeed">
+            <p class="narrator-empty">Your actions will be narrated here as you build and run the experiment…</p>
+          </div>
+        </div>
+        <div class="checklist" id="checklist"></div>
+        <div class="exp-actions">
+          <button class="secondary" id="resetSetupBtn">Reset setup</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <strong>About this bench:</strong> outcomes here are simplified, game-style simulations built for exploring general chemistry concepts (acids, bases, indicators, gases, precipitates, and the periodic table) — they are not lab-accurate procedures, and quantities/temperatures are illustrative, not real yields. A few real-world pairs (marked in red) get a safety note instead of an animation, because they're genuinely hazardous if actually combined and worth knowing about. Nothing on this page tells you how to make or scale up anything — for real demonstrations, watch the linked videos or ask a teacher to show you in person.
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------------- Data ---------------- */
+const CHEM = {
+  water:        { name:"Water", formula:"H₂O", emoji:"💧", color:"#bcd9e8", tags:["solvent"] },
+  salt:         { name:"Table Salt", formula:"NaCl", emoji:"🧂", color:"#eef0ea", tags:["salt","solid"] },
+  sugar:        { name:"Sugar", formula:"C₁₂H₂₂O₁₁", emoji:"🍬", color:"#f5ead0", tags:["sugar","solid"] },
+  baking_soda:  { name:"Baking Soda", formula:"NaHCO₃", emoji:"🥄", color:"#f2f2ea", tags:["base","solid"] },
+  vinegar:      { name:"Vinegar", formula:"CH₃COOH", emoji:"🍶", color:"#eef1c9", tags:["acid","liquid"] },
+  lemon_juice:  { name:"Lemon Juice", formula:"C₆H₈O₇", emoji:"🍋", color:"#f5e58a", tags:["acid","liquid"] },
+  peroxide:     { name:"Hydrogen Peroxide", formula:"H₂O₂", emoji:"🧴", color:"#d7ecec", tags:["oxidizer","liquid"] },
+  yeast:        { name:"Yeast", formula:"—", emoji:"🍞", color:"#e4c98a", tags:["catalyst","solid"] },
+  dish_soap:    { name:"Dish Soap", formula:"—", emoji:"🧼", color:"#cfe8d8", tags:["soap","liquid"] },
+  food_dye:     { name:"Food Coloring", formula:"—", emoji:"🎨", color:"#e39bd6", tags:["dye","liquid"] },
+  iron:         { name:"Iron Filings", formula:"Fe", emoji:"🧲", color:"#8a8f94", tags:["metal","solid"] },
+  copper_sulf:  { name:"Copper Sulfate", formula:"CuSO₄", emoji:"🔷", color:"#4f8fd1", tags:["salt","solid"] },
+  iodine:       { name:"Iodine Tincture", formula:"I₂", emoji:"🟤", color:"#8a4b1e", tags:["indicator","liquid"] },
+  cornstarch:   { name:"Cornstarch", formula:"(C₆H₁₀O₅)ₙ", emoji:"🌽", color:"#f7f0d9", tags:["indicator","solid"] },
+  alcohol:      { name:"Rubbing Alcohol", formula:"C₃H₈O", emoji:"🧪", color:"#eef5f5", tags:["solvent","liquid"] },
+  bleach:       { name:"Bleach", formula:"NaOCl", emoji:"🫙", color:"#eef7f0", tags:["oxidizer","danger","liquid"] },
+  ammonia:      { name:"Ammonia", formula:"NH₃", emoji:"🧫", color:"#eaf3ea", tags:["base","danger","liquid"] },
+  milk:         { name:"Milk", formula:"—", emoji:"🥛", color:"#f7f6ee", tags:["liquid"] },
+  chalk:        { name:"Chalk Powder", formula:"CaCO₃", emoji:"⚪", color:"#f2f2ee", tags:["solid","base"] },
+  sodium_metal: { name:"Sodium Metal", formula:"Na", emoji:"⚡", color:"#c9c9c9", tags:["metal","reactive-metal","solid"] },
+  dry_ice:      { name:"Dry Ice", formula:"CO₂ (s)", emoji:"❄️", color:"#e7f2f5", tags:["gas-solid","solid"] },
+  cabbage:      { name:"Cabbage Juice", formula:"—", emoji:"🥬", color:"#c9a8d6", tags:["indicator","liquid"] },
+
+  /* ---- High-school lab reagents ---- */
+  hcl:                { name:"Dilute Hydrochloric Acid", formula:"HCl(aq)", emoji:"🧪", color:"#eef2e0", tags:["acid","liquid"] },
+  naoh:               { name:"Sodium Hydroxide Solution", formula:"NaOH(aq)", emoji:"🧴", color:"#e6eef2", tags:["base","liquid"] },
+  h2so4:              { name:"Dilute Sulfuric Acid", formula:"H₂SO₄(aq)", emoji:"🧪", color:"#eef0da", tags:["acid","liquid"] },
+  litmus:             { name:"Litmus Solution", formula:"—", emoji:"💧", color:"#8a5fae", tags:["indicator","liquid"] },
+  phenolphthalein:    { name:"Phenolphthalein", formula:"—", emoji:"💧", color:"#f2eee0", tags:["indicator","liquid"] },
+  universal_indicator:{ name:"Universal Indicator", formula:"—", emoji:"🌈", color:"#c9a13a", tags:["indicator","liquid"] },
+  limewater:          { name:"Limewater", formula:"Ca(OH)₂(aq)", emoji:"🥛", color:"#f2f2ea", tags:["base","liquid"] },
+  kmno4:              { name:"Potassium Permanganate", formula:"KMnO₄(aq)", emoji:"🍷", color:"#7a2a6e", tags:["oxidizer","liquid"] },
+  ferrous_sulfate:    { name:"Ferrous Sulfate Solution", formula:"FeSO₄(aq)", emoji:"🧪", color:"#c9d9a8", tags:["liquid"] },
+  sodium_carbonate:   { name:"Sodium Carbonate (washing soda)", formula:"Na₂CO₃", emoji:"🧂", color:"#f2f2ea", tags:["base","solid"] },
+  ammonium_chloride:  { name:"Ammonium Chloride", formula:"NH₄Cl", emoji:"🧂", color:"#f2f2ea", tags:["solid"] },
+  silver_nitrate:     { name:"Silver Nitrate Solution", formula:"AgNO₃(aq)", emoji:"🧪", color:"#eef0f2", tags:["liquid"] },
+
+  /* ---- More NCERT reagents (classes 9-12): acids, bases, salts, organic & test reagents ---- */
+  hno3:                { name:"Dilute Nitric Acid", formula:"HNO₃(aq)", emoji:"🧪", color:"#eef2da", tags:["acid","liquid"] },
+  koh:                 { name:"Potassium Hydroxide Solution", formula:"KOH(aq)", emoji:"🧴", color:"#e6eef2", tags:["base","liquid"] },
+  methyl_orange:       { name:"Methyl Orange", formula:"—", emoji:"🔶", color:"#e08a3d", tags:["indicator","liquid"] },
+  quicklime:           { name:"Quicklime", formula:"CaO", emoji:"🧂", color:"#f2f0ea", tags:["base","solid"] },
+  plaster_of_paris:    { name:"Plaster of Paris", formula:"CaSO₄·½H₂O", emoji:"🧱", color:"#f2f0ea", tags:["solid"] },
+  gypsum:              { name:"Gypsum", formula:"CaSO₄·2H₂O", emoji:"🧱", color:"#f2f0ea", tags:["solid"] },
+  bleaching_powder:    { name:"Bleaching Powder", formula:"CaOCl₂", emoji:"🧂", color:"#eef0e6", tags:["solid","oxidizer"] },
+  zinc_sulfate:        { name:"Zinc Sulfate Solution", formula:"ZnSO₄(aq)", emoji:"🧪", color:"#eef2ee", tags:["liquid"] },
+  lead_nitrate:        { name:"Lead Nitrate Solution", formula:"Pb(NO₃)₂(aq)", emoji:"🧪", color:"#f2f2ee", tags:["liquid"] },
+  barium_chloride:     { name:"Barium Chloride Solution", formula:"BaCl₂(aq)", emoji:"🧪", color:"#f2f2ee", tags:["liquid"] },
+  sodium_sulfate:      { name:"Sodium Sulfate Solution", formula:"Na₂SO₄(aq)", emoji:"🧪", color:"#f2f2ee", tags:["liquid"] },
+  borax:               { name:"Borax", formula:"Na₂B₄O₇·10H₂O", emoji:"🧂", color:"#f0f0e0", tags:["base","solid"] },
+  boric_acid:          { name:"Boric Acid", formula:"H₃BO₃", emoji:"🧂", color:"#f2f2ea", tags:["acid","solid"] },
+  potassium_dichromate:{ name:"Potassium Dichromate", formula:"K₂Cr₂O₇(aq)", emoji:"🧪", color:"#d9760f", tags:["liquid","oxidizer"] },
+  ferric_chloride:     { name:"Ferric Chloride Solution", formula:"FeCl₃(aq)", emoji:"🧪", color:"#c98a3d", tags:["liquid"] },
+  potassium_chlorate:  { name:"Potassium Chlorate", formula:"KClO₃", emoji:"🧂", color:"#f2f2ea", tags:["solid","oxidizer"] },
+  manganese_dioxide:   { name:"Manganese Dioxide", formula:"MnO₂", emoji:"⚫", color:"#3a3a3a", tags:["solid","catalyst"] },
+  chloroform:          { name:"Chloroform", formula:"CHCl₃", emoji:"🧪", color:"#eef2f2", tags:["liquid"] },
+  carbon_tetrachloride:{ name:"Carbon Tetrachloride", formula:"CCl₄", emoji:"🧪", color:"#eef2f2", tags:["liquid"] },
+  methanol:            { name:"Methanol", formula:"CH₃OH", emoji:"🧪", color:"#eef2f2", tags:["liquid"] },
+  ethanol:             { name:"Ethanol", formula:"C₂H₅OH", emoji:"🧪", color:"#eef2f2", tags:["liquid"] },
+  glycerol:            { name:"Glycerol", formula:"C₃H₈O₃", emoji:"🧴", color:"#f2f0e2", tags:["liquid"] },
+  phenol:              { name:"Phenol", formula:"C₆H₅OH", emoji:"🧪", color:"#f2eee0", tags:["acid","liquid"] },
+  formaldehyde:        { name:"Formaldehyde Solution", formula:"HCHO(aq)", emoji:"🧪", color:"#eef2ee", tags:["liquid"] },
+  acetaldehyde:        { name:"Acetaldehyde", formula:"CH₃CHO", emoji:"🧪", color:"#eef2ee", tags:["liquid"] },
+  acetone:             { name:"Acetone", formula:"CH₃COCH₃", emoji:"🧪", color:"#eef2f2", tags:["liquid"] },
+  benzaldehyde:        { name:"Benzaldehyde", formula:"C₆H₅CHO", emoji:"🧪", color:"#f2eede", tags:["liquid"] },
+  formic_acid:         { name:"Formic Acid", formula:"HCOOH", emoji:"🧪", color:"#eef2da", tags:["acid","liquid"] },
+  oxalic_acid:         { name:"Oxalic Acid", formula:"(COOH)₂", emoji:"🧂", color:"#f2f2ea", tags:["acid","solid"] },
+  benzoic_acid:        { name:"Benzoic Acid", formula:"C₆H₅COOH", emoji:"🧂", color:"#f2f2ea", tags:["acid","solid"] },
+  aniline:             { name:"Aniline", formula:"C₆H₅NH₂", emoji:"🧪", color:"#f2ecd8", tags:["base","liquid"] },
+  glucose:             { name:"Glucose Solution", formula:"C₆H₁₂O₆(aq)", emoji:"🍯", color:"#eef2ee", tags:["liquid"] },
+  tollens_reagent:     { name:"Tollens' Reagent", formula:"[Ag(NH₃)₂]⁺", emoji:"🧪", color:"#eef0f0", tags:["liquid","oxidizer"] },
+  fehlings_solution:   { name:"Fehling's Solution", formula:"Cu²⁺ complex", emoji:"🧪", color:"#3a6fae", tags:["liquid","oxidizer"] },
+  benedicts_solution:  { name:"Benedict's Solution", formula:"Cu²⁺ complex", emoji:"🧪", color:"#3a7fae", tags:["liquid","oxidizer"] },
+  dnp_reagent:         { name:"2,4-DNP Reagent", formula:"C₆H₆N₄O₄", emoji:"🧪", color:"#e0a03d", tags:["liquid"] },
+  schiffs_reagent:     { name:"Schiff's Reagent", formula:"—", emoji:"🧪", color:"#f2eef0", tags:["liquid"] },
+  potassium_iodide:    { name:"Potassium Iodide Solution", formula:"KI(aq)", emoji:"🧪", color:"#eef2ee", tags:["liquid"] },
+  sodium_thiosulfate:  { name:"Sodium Thiosulfate (hypo)", formula:"Na₂S₂O₃(aq)", emoji:"🧪", color:"#eef2ee", tags:["liquid"] },
+  lead_acetate:        { name:"Lead Acetate Solution", formula:"Pb(CH₃COO)₂(aq)", emoji:"🧪", color:"#f2f2ee", tags:["liquid"] },
+  potassium_ferrocyanide:{ name:"Potassium Ferrocyanide", formula:"K₄[Fe(CN)₆]", emoji:"🧂", color:"#f0f0d8", tags:["solid"] },
+  ammonium_oxalate:    { name:"Ammonium Oxalate Solution", formula:"(NH₄)₂C₂O₄(aq)", emoji:"🧪", color:"#eef2ee", tags:["liquid"] },
+
+  /* ---- Full periodic table (118 elements), generated programmatically ---- */
+  el_h: { name:"Hydrogen", formula:"H", symbol:"H", num:1, emoji:"", color:"#9ec97a", cat:"reactive-nonmetal", tags:["reactive-nonmetal","gas","element"] },
+  el_he: { name:"Helium", formula:"He", symbol:"He", num:2, emoji:"", color:"#b98fd6", cat:"noble-gas", tags:["noble-gas","gas","element","inert"] },
+  el_li: { name:"Lithium", formula:"Li", symbol:"Li", num:3, emoji:"", color:"#e0973a", cat:"alkali-metal", tags:["alkali-metal","solid","element","metal","reactive-metal"] },
+  el_be: { name:"Beryllium", formula:"Be", symbol:"Be", num:4, emoji:"", color:"#c9a13a", cat:"alkaline-earth", tags:["alkaline-earth","solid","element","metal"] },
+  el_b: { name:"Boron", formula:"B", symbol:"B", num:5, emoji:"", color:"#8aa88f", cat:"metalloid", tags:["metalloid","solid","element"] },
+  el_c: { name:"Carbon", formula:"C", symbol:"C", num:6, emoji:"", color:"#9ec97a", cat:"reactive-nonmetal", tags:["reactive-nonmetal","solid","element"] },
+  el_n: { name:"Nitrogen", formula:"N", symbol:"N", num:7, emoji:"", color:"#9ec97a", cat:"reactive-nonmetal", tags:["reactive-nonmetal","gas","element"] },
+  el_o: { name:"Oxygen", formula:"O", symbol:"O", num:8, emoji:"", color:"#9ec97a", cat:"reactive-nonmetal", tags:["reactive-nonmetal","gas","element"] },
+  el_f: { name:"Fluorine", formula:"F", symbol:"F", num:9, emoji:"", color:"#4f9e63", cat:"halogen", tags:["halogen","gas","element"] },
+  el_ne: { name:"Neon", formula:"Ne", symbol:"Ne", num:10, emoji:"", color:"#b98fd6", cat:"noble-gas", tags:["noble-gas","gas","element","inert"] },
+  el_na: { name:"Sodium", formula:"Na", symbol:"Na", num:11, emoji:"", color:"#e0973a", cat:"alkali-metal", tags:["alkali-metal","solid","element","metal","reactive-metal"] },
+  el_mg: { name:"Magnesium", formula:"Mg", symbol:"Mg", num:12, emoji:"", color:"#c9a13a", cat:"alkaline-earth", tags:["alkaline-earth","solid","element","metal"] },
+  el_al: { name:"Aluminium", formula:"Al", symbol:"Al", num:13, emoji:"", color:"#7fae8a", cat:"post-transition-metal", tags:["post-transition-metal","solid","element","metal"] },
+  el_si: { name:"Silicon", formula:"Si", symbol:"Si", num:14, emoji:"", color:"#8aa88f", cat:"metalloid", tags:["metalloid","solid","element"] },
+  el_p: { name:"Phosphorus", formula:"P", symbol:"P", num:15, emoji:"", color:"#9ec97a", cat:"reactive-nonmetal", tags:["reactive-nonmetal","solid","element"] },
+  el_s: { name:"Sulfur", formula:"S", symbol:"S", num:16, emoji:"", color:"#9ec97a", cat:"reactive-nonmetal", tags:["reactive-nonmetal","solid","element"] },
+  el_cl: { name:"Chlorine", formula:"Cl", symbol:"Cl", num:17, emoji:"", color:"#4f9e63", cat:"halogen", tags:["halogen","gas","element"] },
+  el_ar: { name:"Argon", formula:"Ar", symbol:"Ar", num:18, emoji:"", color:"#b98fd6", cat:"noble-gas", tags:["noble-gas","gas","element","inert"] },
+  el_k: { name:"Potassium", formula:"K", symbol:"K", num:19, emoji:"", color:"#e0973a", cat:"alkali-metal", tags:["alkali-metal","solid","element","metal","reactive-metal"] },
+  el_ca: { name:"Calcium", formula:"Ca", symbol:"Ca", num:20, emoji:"", color:"#c9a13a", cat:"alkaline-earth", tags:["alkaline-earth","solid","element","metal","reactive-metal"] },
+  el_sc: { name:"Scandium", formula:"Sc", symbol:"Sc", num:21, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_ti: { name:"Titanium", formula:"Ti", symbol:"Ti", num:22, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_v: { name:"Vanadium", formula:"V", symbol:"V", num:23, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_cr: { name:"Chromium", formula:"Cr", symbol:"Cr", num:24, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_mn: { name:"Manganese", formula:"Mn", symbol:"Mn", num:25, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_fe: { name:"Iron", formula:"Fe", symbol:"Fe", num:26, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_co: { name:"Cobalt", formula:"Co", symbol:"Co", num:27, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_ni: { name:"Nickel", formula:"Ni", symbol:"Ni", num:28, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_cu: { name:"Copper", formula:"Cu", symbol:"Cu", num:29, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_zn: { name:"Zinc", formula:"Zn", symbol:"Zn", num:30, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_ga: { name:"Gallium", formula:"Ga", symbol:"Ga", num:31, emoji:"", color:"#7fae8a", cat:"post-transition-metal", tags:["post-transition-metal","solid","element","metal"] },
+  el_ge: { name:"Germanium", formula:"Ge", symbol:"Ge", num:32, emoji:"", color:"#8aa88f", cat:"metalloid", tags:["metalloid","solid","element"] },
+  el_as: { name:"Arsenic", formula:"As", symbol:"As", num:33, emoji:"", color:"#8aa88f", cat:"metalloid", tags:["metalloid","solid","element"] },
+  el_se: { name:"Selenium", formula:"Se", symbol:"Se", num:34, emoji:"", color:"#9ec97a", cat:"reactive-nonmetal", tags:["reactive-nonmetal","solid","element"] },
+  el_br: { name:"Bromine", formula:"Br", symbol:"Br", num:35, emoji:"", color:"#4f9e63", cat:"halogen", tags:["halogen","liquid","element"] },
+  el_kr: { name:"Krypton", formula:"Kr", symbol:"Kr", num:36, emoji:"", color:"#b98fd6", cat:"noble-gas", tags:["noble-gas","gas","element","inert"] },
+  el_rb: { name:"Rubidium", formula:"Rb", symbol:"Rb", num:37, emoji:"", color:"#e0973a", cat:"alkali-metal", tags:["alkali-metal","solid","element","metal","reactive-metal"] },
+  el_sr: { name:"Strontium", formula:"Sr", symbol:"Sr", num:38, emoji:"", color:"#c9a13a", cat:"alkaline-earth", tags:["alkaline-earth","solid","element","metal","reactive-metal"] },
+  el_y: { name:"Yttrium", formula:"Y", symbol:"Y", num:39, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_zr: { name:"Zirconium", formula:"Zr", symbol:"Zr", num:40, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_nb: { name:"Niobium", formula:"Nb", symbol:"Nb", num:41, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_mo: { name:"Molybdenum", formula:"Mo", symbol:"Mo", num:42, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_tc: { name:"Technetium", formula:"Tc", symbol:"Tc", num:43, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_ru: { name:"Ruthenium", formula:"Ru", symbol:"Ru", num:44, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_rh: { name:"Rhodium", formula:"Rh", symbol:"Rh", num:45, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_pd: { name:"Palladium", formula:"Pd", symbol:"Pd", num:46, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_ag: { name:"Silver", formula:"Ag", symbol:"Ag", num:47, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_cd: { name:"Cadmium", formula:"Cd", symbol:"Cd", num:48, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_in: { name:"Indium", formula:"In", symbol:"In", num:49, emoji:"", color:"#7fae8a", cat:"post-transition-metal", tags:["post-transition-metal","solid","element","metal"] },
+  el_sn: { name:"Tin", formula:"Sn", symbol:"Sn", num:50, emoji:"", color:"#7fae8a", cat:"post-transition-metal", tags:["post-transition-metal","solid","element","metal"] },
+  el_sb: { name:"Antimony", formula:"Sb", symbol:"Sb", num:51, emoji:"", color:"#8aa88f", cat:"metalloid", tags:["metalloid","solid","element"] },
+  el_te: { name:"Tellurium", formula:"Te", symbol:"Te", num:52, emoji:"", color:"#8aa88f", cat:"metalloid", tags:["metalloid","solid","element"] },
+  el_i: { name:"Iodine", formula:"I", symbol:"I", num:53, emoji:"", color:"#4f9e63", cat:"halogen", tags:["halogen","solid","element"] },
+  el_xe: { name:"Xenon", formula:"Xe", symbol:"Xe", num:54, emoji:"", color:"#b98fd6", cat:"noble-gas", tags:["noble-gas","gas","element","inert"] },
+  el_cs: { name:"Caesium", formula:"Cs", symbol:"Cs", num:55, emoji:"", color:"#e0973a", cat:"alkali-metal", tags:["alkali-metal","solid","element","metal","reactive-metal"] },
+  el_ba: { name:"Barium", formula:"Ba", symbol:"Ba", num:56, emoji:"", color:"#c9a13a", cat:"alkaline-earth", tags:["alkaline-earth","solid","element","metal","reactive-metal"] },
+  el_la: { name:"Lanthanum", formula:"La", symbol:"La", num:57, emoji:"", color:"#d68fae", cat:"lanthanide", tags:["lanthanide","solid","element","metal"] },
+  el_ce: { name:"Cerium", formula:"Ce", symbol:"Ce", num:58, emoji:"", color:"#d68fae", cat:"lanthanide", tags:["lanthanide","solid","element","metal"] },
+  el_pr: { name:"Praseodymium", formula:"Pr", symbol:"Pr", num:59, emoji:"", color:"#d68fae", cat:"lanthanide", tags:["lanthanide","solid","element","metal"] },
+  el_nd: { name:"Neodymium", formula:"Nd", symbol:"Nd", num:60, emoji:"", color:"#d68fae", cat:"lanthanide", tags:["lanthanide","solid","element","metal"] },
+  el_pm: { name:"Promethium", formula:"Pm", symbol:"Pm", num:61, emoji:"", color:"#d68fae", cat:"lanthanide", tags:["lanthanide","solid","element","metal"] },
+  el_sm: { name:"Samarium", formula:"Sm", symbol:"Sm", num:62, emoji:"", color:"#d68fae", cat:"lanthanide", tags:["lanthanide","solid","element","metal"] },
+  el_eu: { name:"Europium", formula:"Eu", symbol:"Eu", num:63, emoji:"", color:"#d68fae", cat:"lanthanide", tags:["lanthanide","solid","element","metal"] },
+  el_gd: { name:"Gadolinium", formula:"Gd", symbol:"Gd", num:64, emoji:"", color:"#d68fae", cat:"lanthanide", tags:["lanthanide","solid","element","metal"] },
+  el_tb: { name:"Terbium", formula:"Tb", symbol:"Tb", num:65, emoji:"", color:"#d68fae", cat:"lanthanide", tags:["lanthanide","solid","element","metal"] },
+  el_dy: { name:"Dysprosium", formula:"Dy", symbol:"Dy", num:66, emoji:"", color:"#d68fae", cat:"lanthanide", tags:["lanthanide","solid","element","metal"] },
+  el_ho: { name:"Holmium", formula:"Ho", symbol:"Ho", num:67, emoji:"", color:"#d68fae", cat:"lanthanide", tags:["lanthanide","solid","element","metal"] },
+  el_er: { name:"Erbium", formula:"Er", symbol:"Er", num:68, emoji:"", color:"#d68fae", cat:"lanthanide", tags:["lanthanide","solid","element","metal"] },
+  el_tm: { name:"Thulium", formula:"Tm", symbol:"Tm", num:69, emoji:"", color:"#d68fae", cat:"lanthanide", tags:["lanthanide","solid","element","metal"] },
+  el_yb: { name:"Ytterbium", formula:"Yb", symbol:"Yb", num:70, emoji:"", color:"#d68fae", cat:"lanthanide", tags:["lanthanide","solid","element","metal"] },
+  el_lu: { name:"Lutetium", formula:"Lu", symbol:"Lu", num:71, emoji:"", color:"#d68fae", cat:"lanthanide", tags:["lanthanide","solid","element","metal"] },
+  el_hf: { name:"Hafnium", formula:"Hf", symbol:"Hf", num:72, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_ta: { name:"Tantalum", formula:"Ta", symbol:"Ta", num:73, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_w: { name:"Tungsten", formula:"W", symbol:"W", num:74, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_re: { name:"Rhenium", formula:"Re", symbol:"Re", num:75, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_os: { name:"Osmium", formula:"Os", symbol:"Os", num:76, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_ir: { name:"Iridium", formula:"Ir", symbol:"Ir", num:77, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_pt: { name:"Platinum", formula:"Pt", symbol:"Pt", num:78, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_au: { name:"Gold", formula:"Au", symbol:"Au", num:79, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_hg: { name:"Mercury", formula:"Hg", symbol:"Hg", num:80, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","liquid","element","metal"] },
+  el_tl: { name:"Thallium", formula:"Tl", symbol:"Tl", num:81, emoji:"", color:"#7fae8a", cat:"post-transition-metal", tags:["post-transition-metal","solid","element","metal"] },
+  el_pb: { name:"Lead", formula:"Pb", symbol:"Pb", num:82, emoji:"", color:"#7fae8a", cat:"post-transition-metal", tags:["post-transition-metal","solid","element","metal"] },
+  el_bi: { name:"Bismuth", formula:"Bi", symbol:"Bi", num:83, emoji:"", color:"#7fae8a", cat:"post-transition-metal", tags:["post-transition-metal","solid","element","metal"] },
+  el_po: { name:"Polonium", formula:"Po", symbol:"Po", num:84, emoji:"", color:"#8aa88f", cat:"metalloid", tags:["metalloid","solid","element"] },
+  el_at: { name:"Astatine", formula:"At", symbol:"At", num:85, emoji:"", color:"#4f9e63", cat:"halogen", tags:["halogen","solid","element"] },
+  el_rn: { name:"Radon", formula:"Rn", symbol:"Rn", num:86, emoji:"", color:"#b98fd6", cat:"noble-gas", tags:["noble-gas","gas","element","inert"] },
+  el_fr: { name:"Francium", formula:"Fr", symbol:"Fr", num:87, emoji:"", color:"#e0973a", cat:"alkali-metal", tags:["alkali-metal","solid","element","metal","reactive-metal"] },
+  el_ra: { name:"Radium", formula:"Ra", symbol:"Ra", num:88, emoji:"", color:"#c9a13a", cat:"alkaline-earth", tags:["alkaline-earth","solid","element","metal","reactive-metal"] },
+  el_ac: { name:"Actinium", formula:"Ac", symbol:"Ac", num:89, emoji:"", color:"#c97ab9", cat:"actinide", tags:["actinide","solid","element","metal"] },
+  el_th: { name:"Thorium", formula:"Th", symbol:"Th", num:90, emoji:"", color:"#c97ab9", cat:"actinide", tags:["actinide","solid","element","metal"] },
+  el_pa: { name:"Protactinium", formula:"Pa", symbol:"Pa", num:91, emoji:"", color:"#c97ab9", cat:"actinide", tags:["actinide","solid","element","metal"] },
+  el_u: { name:"Uranium", formula:"U", symbol:"U", num:92, emoji:"", color:"#c97ab9", cat:"actinide", tags:["actinide","solid","element","metal"] },
+  el_np: { name:"Neptunium", formula:"Np", symbol:"Np", num:93, emoji:"", color:"#c97ab9", cat:"actinide", tags:["actinide","solid","element","metal"] },
+  el_pu: { name:"Plutonium", formula:"Pu", symbol:"Pu", num:94, emoji:"", color:"#c97ab9", cat:"actinide", tags:["actinide","solid","element","metal"] },
+  el_am: { name:"Americium", formula:"Am", symbol:"Am", num:95, emoji:"", color:"#c97ab9", cat:"actinide", tags:["actinide","solid","element","metal"] },
+  el_cm: { name:"Curium", formula:"Cm", symbol:"Cm", num:96, emoji:"", color:"#c97ab9", cat:"actinide", tags:["actinide","solid","element","metal"] },
+  el_bk: { name:"Berkelium", formula:"Bk", symbol:"Bk", num:97, emoji:"", color:"#c97ab9", cat:"actinide", tags:["actinide","solid","element","metal"] },
+  el_cf: { name:"Californium", formula:"Cf", symbol:"Cf", num:98, emoji:"", color:"#c97ab9", cat:"actinide", tags:["actinide","solid","element","metal"] },
+  el_es: { name:"Einsteinium", formula:"Es", symbol:"Es", num:99, emoji:"", color:"#c97ab9", cat:"actinide", tags:["actinide","solid","element","metal"] },
+  el_fm: { name:"Fermium", formula:"Fm", symbol:"Fm", num:100, emoji:"", color:"#c97ab9", cat:"actinide", tags:["actinide","solid","element","metal"] },
+  el_md: { name:"Mendelevium", formula:"Md", symbol:"Md", num:101, emoji:"", color:"#c97ab9", cat:"actinide", tags:["actinide","solid","element","metal"] },
+  el_no: { name:"Nobelium", formula:"No", symbol:"No", num:102, emoji:"", color:"#c97ab9", cat:"actinide", tags:["actinide","solid","element","metal"] },
+  el_lr: { name:"Lawrencium", formula:"Lr", symbol:"Lr", num:103, emoji:"", color:"#c97ab9", cat:"actinide", tags:["actinide","solid","element","metal"] },
+  el_rf: { name:"Rutherfordium", formula:"Rf", symbol:"Rf", num:104, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_db: { name:"Dubnium", formula:"Db", symbol:"Db", num:105, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_sg: { name:"Seaborgium", formula:"Sg", symbol:"Sg", num:106, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_bh: { name:"Bohrium", formula:"Bh", symbol:"Bh", num:107, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_hs: { name:"Hassium", formula:"Hs", symbol:"Hs", num:108, emoji:"", color:"#6f8fa8", cat:"transition-metal", tags:["transition-metal","solid","element","metal"] },
+  el_mt: { name:"Meitnerium", formula:"Mt", symbol:"Mt", num:109, emoji:"", color:"#9aa3ab", cat:"unknown", tags:["unknown","solid","element"] },
+  el_ds: { name:"Darmstadtium", formula:"Ds", symbol:"Ds", num:110, emoji:"", color:"#9aa3ab", cat:"unknown", tags:["unknown","solid","element"] },
+  el_rg: { name:"Roentgenium", formula:"Rg", symbol:"Rg", num:111, emoji:"", color:"#9aa3ab", cat:"unknown", tags:["unknown","solid","element"] },
+  el_cn: { name:"Copernicium", formula:"Cn", symbol:"Cn", num:112, emoji:"", color:"#9aa3ab", cat:"unknown", tags:["unknown","gas","element"] },
+  el_nh: { name:"Nihonium", formula:"Nh", symbol:"Nh", num:113, emoji:"", color:"#7fae8a", cat:"post-transition-metal", tags:["post-transition-metal","solid","element","metal"] },
+  el_fl: { name:"Flerovium", formula:"Fl", symbol:"Fl", num:114, emoji:"", color:"#7fae8a", cat:"post-transition-metal", tags:["post-transition-metal","solid","element","metal"] },
+  el_mc: { name:"Moscovium", formula:"Mc", symbol:"Mc", num:115, emoji:"", color:"#7fae8a", cat:"post-transition-metal", tags:["post-transition-metal","solid","element","metal"] },
+  el_lv: { name:"Livermorium", formula:"Lv", symbol:"Lv", num:116, emoji:"", color:"#7fae8a", cat:"post-transition-metal", tags:["post-transition-metal","solid","element","metal"] },
+  el_ts: { name:"Tennessine", formula:"Ts", symbol:"Ts", num:117, emoji:"", color:"#4f9e63", cat:"halogen", tags:["halogen","solid","element"] },
+  el_og: { name:"Oganesson", formula:"Og", symbol:"Og", num:118, emoji:"", color:"#b98fd6", cat:"noble-gas", tags:["noble-gas","gas","element","inert"] },
+};
+
+/* quick lookup: which CHEM ids are elements vs household items */
+const HOUSEHOLD_IDS = Object.keys(CHEM).filter(id => !CHEM[id].tags.includes("element"));
+const ELEMENT_IDS = Object.keys(CHEM).filter(id => CHEM[id].tags.includes("element"));
+
+// key = ids sorted + joined with "__"
+function pairKey(a,b){ return [a,b].sort().join("__"); }
+
+const REACTIONS = {};
+function add(a,b,data){ REACTIONS[pairKey(a,b)] = data; }
+
+add("baking_soda","vinegar", {
+  title:"Fizzing eruption",
+  desc:"The baking soda and vinegar react instantly, releasing a rush of carbon dioxide bubbles that foam up and over the rim — the classic volcano reaction.",
+  effect:"fizz", color:"#e8e2c2",
+  gasName:"carbon dioxide", soundNote:"loud, rushing fizz",
+  video:"baking soda vinegar volcano experiment"
+,
+  equation:"NaHCO₃ + CH₃COOH → CH₃COONa + H₂O + CO₂↑"
+});
+add("baking_soda","lemon_juice", {
+  title:"Citrus fizz",
+  desc:"Citric acid in the lemon juice reacts with the baking soda, producing a steady stream of carbon dioxide bubbles and a faint citrus smell.",
+  effect:"fizz", color:"#eee3a0",
+  video:"lemon juice baking soda reaction"
+,
+  equation:"3NaHCO₃ + C₆H₈O₇ → Na₃C₆H₅O₇ + 3H₂O + 3CO₂↑"
+});
+add("baking_soda","food_dye", {
+  title:"Tinted paste",
+  desc:"The dye simply colors the baking soda paste — no chemical reaction, just a new shade of white-turned-pastel.",
+  effect:"dissolve", color:"#e8b8dd"
+,
+  equation:"no reaction — physical colouring only"
+});
+add("peroxide","yeast", {
+  title:"Elephant toothpaste",
+  desc:"Yeast acts as a catalyst, rapidly breaking the peroxide down into water and oxygen gas. Trapped in soapy foam, it erupts out of the container in a thick, warm column.",
+  effect:"foam", color:"#e9e4c9",
+  video:"elephant toothpaste experiment"
+,
+  equation:"2H₂O₂ →(catalyst) 2H₂O + O₂↑"
+});
+add("peroxide","dish_soap", {
+  title:"Slow foam",
+  desc:"Without a catalyst the peroxide breaks down slowly, but the soap still traps what little oxygen is released into a light, short-lived foam.",
+  effect:"foam-small", color:"#eef2e0"
+,
+  equation:"2H₂O₂ → 2H₂O + O₂↑ (slow, trapped as foam)"
+});
+add("copper_sulf","iron", {
+  title:"Metal swap",
+  desc:"Iron is more reactive than copper, so it displaces it from solution. The blue copper sulfate fades toward pale green as a reddish copper coating forms on the iron.",
+  effect:"colorchange", color:"#a8c9a0",
+  colorNote:"blue → pale green, reddish coating on the iron", precipitateName:"a thin copper coating deposits on the iron surface",
+  video:"iron copper sulfate displacement reaction"
+,
+  equation:"Fe + CuSO₄ → FeSO₄ + Cu"
+});
+add("iodine","cornstarch", {
+  title:"Ink-black shift",
+  desc:"Iodine slots into the coiled structure of starch molecules, turning the mixture a deep blue-black almost immediately — a classic starch test.",
+  effect:"colorchange", color:"#2b2b3a",
+  colorNote:"orange-brown → deep blue-black",
+  video:"iodine starch test reaction"
+,
+  equation:"I₂ + starch → starch–iodine complex (deep blue-black)"
+});
+add("cabbage","vinegar", {
+  title:"Turns pink",
+  desc:"Cabbage juice is a natural pH indicator. The acid in the vinegar shifts it toward a bright pink-red.",
+  effect:"colorchange", color:"#d9668f",
+  colorNote:"purple → pink-red",
+  video:"red cabbage indicator acid base"
+,
+  equation:"no fixed formula — anthocyanin pigment shifts colour with pH"
+});
+add("cabbage","baking_soda", {
+  title:"Turns blue-green",
+  desc:"The baking soda's alkalinity shifts the cabbage indicator toward blue-green, the opposite direction from an acid.",
+  effect:"colorchange-fizz", color:"#5fa89a",
+  colorNote:"purple → blue-green", gasName:"a little carbon dioxide",
+  video:"red cabbage indicator acid base"
+,
+  equation:"no fixed formula — anthocyanin pigment shifts colour with pH"
+});
+add("cabbage","lemon_juice", {
+  title:"Turns pink",
+  desc:"Like vinegar, lemon juice's citric acid pushes the cabbage indicator toward pink-red.",
+  effect:"colorchange", color:"#d9789a"
+,
+  equation:"no fixed formula — anthocyanin pigment shifts colour with pH"
+});
+add("cabbage","ammonia", {
+  title:"Turns bright green",
+  desc:"Ammonia is a strong base, so it pushes the cabbage indicator further along the scale than baking soda does, landing on a vivid green.",
+  effect:"colorchange", color:"#5aa66b"
+,
+  equation:"no fixed formula — anthocyanin pigment shifts colour with pH"
+});
+add("milk","vinegar", {
+  title:"Curdles",
+  desc:"The acid causes milk proteins (casein) to clump together and separate from the liquid whey — the first step of cheesemaking.",
+  effect:"precipitate", color:"#f2eedc",
+  precipitateName:"soft white casein curds"
+,
+  equation:"casein (milk protein) coagulates — no small-molecule equation"
+});
+add("milk","lemon_juice", {
+  title:"Curdles",
+  desc:"Citric acid curdles the milk in much the same way vinegar does, separating soft white curds from the whey.",
+  effect:"precipitate", color:"#f5f0dd"
+,
+  equation:"casein (milk protein) coagulates — no small-molecule equation"
+});
+add("dry_ice","water", {
+  title:"Rolling fog",
+  desc:"The dry ice sublimates rapidly in the water, throwing off a thick, low-lying fog and a steady stream of bubbles as it shrinks away.",
+  effect:"fog", color:"#dcebee",
+  video:"dry ice fog experiment"
+,
+  equation:"CO₂(s) → CO₂(g) (sublimation, not a chemical reaction)"
+});
+add("salt","water", {
+  title:"Dissolves clear",
+  desc:"The salt breaks apart into ions and disappears into the water, leaving a clear, faintly denser solution behind.",
+  effect:"dissolve", color:"#d7e6ee"
+,
+  equation:"NaCl(s) → Na⁺(aq) + Cl⁻(aq) (dissolution, not a reaction)"
+});
+add("sugar","water", {
+  title:"Dissolves clear",
+  desc:"Sugar dissolves readily, leaving a clear, slightly syrupy solution with no visible change beyond a subtle shimmer.",
+  effect:"dissolve", color:"#e9edda"
+,
+  equation:"C₁₂H₂₂O₁₁(s) → C₁₂H₂₂O₁₁(aq) (dissolution, not a reaction)"
+});
+add("sodium_metal","water", {
+  title:"Violent, sparking reaction",
+  desc:"Sodium reacts with water so vigorously that it can skate across the surface, hiss, and throw off sparks or a small flame as hydrogen gas is released. This is a real and well-documented reaction — a striking one to watch, but not one to attempt outside a supervised demonstration.",
+  effect:"spark", color:"#f4f0e4",
+  gasName:"hydrogen", soundNote:"hissing, crackling, occasional pop",
+  video:"sodium metal in water reaction"
+,
+  equation:"2Na + 2H₂O → 2NaOH + H₂↑"
+});
+add("bleach","ammonia", {
+  title:"Do not mix — toxic gas",
+  desc:"In real life, bleach and ammonia react to release chloramine vapors, which are toxic to breathe even in small amounts. This is one of the most common accidental poisonings in home cleaning. If you ever smell a sharp chemical odor after mixing cleaning products, leave the area and ventilate immediately.",
+  effect:"danger", color:"#f3d9d4", danger:true,
+  gasName:"chloramine vapours (toxic)", soundNote:"silent — the danger is invisible"
+,
+  equation:"NaOCl + 2NH₃ → NaOH + NH₂Cl + … (mix of toxic chloramines)"
+});
+add("bleach","vinegar", {
+  title:"Do not mix — toxic gas",
+  desc:"Combining bleach with an acid like vinegar releases chlorine gas, which is dangerous to inhale. Cleaning products should always be used separately, never combined.",
+  effect:"danger", color:"#f3d9d4", danger:true,
+  gasName:"chlorine gas (toxic)", soundNote:"silent — the danger is invisible"
+,
+  equation:"NaOCl + CH₃COOH → CH₃COONa + HOCl (releases Cl₂ gas over time)"
+});
+add("bleach","alcohol", {
+  title:"Do not mix — harmful fumes",
+  desc:"Bleach and rubbing alcohol can react to form harsh, irritating byproducts including chloroform-related compounds. Keep these stored and used separately.",
+  effect:"danger", color:"#f3d9d4", danger:true,
+  gasName:"chloroform-related irritant fumes", soundNote:"silent — the danger is invisible"
+,
+  equation:"complex oxidation products — no single clean equation"
+});
+add("dish_soap","food_dye", {
+  title:"Colored suds",
+  desc:"No reaction here — just a swirl of color moving through the soap before settling into a uniform tint.",
+  effect:"dissolve", color:"#d68ec9"
+,
+  equation:"no reaction — physical mixing only"
+});
+add("chalk","vinegar", {
+  title:"Gentle fizz",
+  desc:"The calcium carbonate in chalk reacts with the acid, slowly releasing carbon dioxide bubbles as the chalk dissolves away.",
+  effect:"fizz-small", color:"#e6e6d8"
+,
+  equation:"CaCO₃ + 2CH₃COOH → Ca(CH₃COO)₂ + H₂O + CO₂↑"
+});
+add("chalk","lemon_juice", {
+  title:"Gentle fizz",
+  desc:"Citric acid slowly dissolves the chalk, releasing a light stream of carbon dioxide bubbles.",
+  effect:"fizz-small", color:"#eae8cf"
+,
+  equation:"2CaCO₃ + C₆H₈O₇ → calcium citrate + H₂O + CO₂↑ (simplified)"
+});
+
+/* ---------------- Curated element reactions ---------------- */
+add("el_na","water", {
+  title:"Violent, sparking reaction",
+  desc:"Sodium metal reacts with water so vigorously it can skate across the surface, hiss, and throw sparks as hydrogen gas is released. A real, well-documented reaction — striking to watch, not to attempt outside a supervised demo.",
+  effect:"spark", color:"#f4f0e4",
+  gasName:"hydrogen", soundNote:"hissing, crackling, occasional pop",
+  video:"sodium metal in water reaction"
+,
+  equation:"2Na + 2H₂O → 2NaOH + H₂↑"
+});
+add("el_k","water", {
+  title:"Explosive reaction",
+  desc:"Potassium is even more reactive than sodium — it ignites the hydrogen gas it releases almost immediately, producing a lilac flame and small pops as it darts across the surface.",
+  effect:"explosion", color:"#f0e9d8", danger:true,
+  gasName:"hydrogen (ignites)", soundNote:"sharp pops and a hiss, small bang",
+  video:"potassium metal in water reaction"
+,
+  equation:"2K + 2H₂O → 2KOH + H₂↑"
+});
+add("el_li","water", {
+  title:"Fizzing with a red flame",
+  desc:"Lithium reacts with water more gently than sodium or potassium, fizzing steadily and sometimes tinting a flame test crimson-red.",
+  effect:"fizz", color:"#f2eee0",
+  gasName:"hydrogen", soundNote:"steady, gentle fizzing"
+,
+  equation:"2Li + 2H₂O → 2LiOH + H₂↑"
+});
+add("el_ca","water", {
+  title:"Steady bubbling",
+  desc:"Calcium reacts with water at a manageable pace, producing a steady stream of hydrogen bubbles and a cloudy calcium hydroxide solution.",
+  effect:"fizz-small", color:"#eef0ea",
+  gasName:"hydrogen", soundNote:"gentle, steady fizzing"
+,
+  equation:"Ca + 2H₂O → Ca(OH)₂ + H₂↑"
+});
+add("el_na","el_cl", {
+  title:"Bright flash, forms salt",
+  desc:"Sodium and chlorine gas combine in a bright, energetic flash to form ordinary table salt — one of the most exothermic simple reactions there is.",
+  effect:"spark", color:"#f2f2ea",
+  gasName:"none once fully reacted", soundNote:"a sharp crackle"
+,
+  equation:"2Na + Cl₂ → 2NaCl"
+});
+add("el_fe","el_o", {
+  title:"Rusts before your eyes",
+  desc:"Iron and oxygen slowly combine into iron oxide — the same chemistry as rust, just sped up for the sandbox.",
+  effect:"colorchange", color:"#c97a5a",
+  gasName:"none (oxygen is absorbed)", soundNote:"silent"
+,
+  equation:"4Fe + 3O₂ → 2Fe₂O₃"
+});
+add("el_cu","el_o", {
+  title:"Dulls to green-black",
+  desc:"Copper reacts with oxygen over time to form a dark oxide layer, the first step toward the green patina seen on old copper roofs and statues.",
+  effect:"colorchange", color:"#6f8a6f",
+  gasName:"none (oxygen is absorbed)", soundNote:"silent"
+,
+  equation:"2Cu + O₂ → 2CuO"
+});
+add("el_h","el_o", {
+  title:"Combines into water",
+  desc:"Hydrogen and oxygen combine in a famously energetic reaction that releases a lot of heat and light, forming nothing but water vapor.",
+  effect:"explosion", color:"#dcebee", danger:true,
+  gasName:"consumes both, produces water vapour", soundNote:"a sharp pop or bang",
+  video:"hydrogen oxygen explosion reaction"
+,
+  equation:"2H₂ + O₂ → 2H₂O"
+});
+add("el_au","el_ag", {
+  title:"Blends into an alloy",
+  desc:"Gold and silver are both noble metals that don't react chemically — instead they melt and blend smoothly into a shining alloy.",
+  effect:"swirl", color:"#c9be8f",
+  gasName:"none", soundNote:"silent"
+,
+  equation:"no reaction — physical alloying only"
+});
+add("el_he","water", {
+  title:"No reaction — just bubbles through",
+  desc:"Helium is chemically inert. It doesn't react with water at all — it just bubbles harmlessly to the surface and escapes.",
+  effect:"fizz-small", color:"#cfe0e8",
+  gasName:"helium (unreacted, just passing through)", soundNote:"faint, gentle bubbling"
+,
+  equation:"no reaction — helium is chemically inert"
+});
+add("el_rb","water", {
+  title:"Violent explosion",
+  desc:"Rubidium is one of the most reactive metals on the periodic table. It reacts almost instantly and explosively with water, igniting the hydrogen it releases and often shattering its own container. This is one of the most famous filmed chemistry demonstrations — real, well-documented, and never something to attempt outside a professionally supervised, shielded setup.",
+  effect:"explosion", color:"#f0e6d0", danger:true,
+  gasName:"hydrogen (ignites explosively)", soundNote:"a sharp bang and crackling pops",
+  video:"rubidium metal in water reaction"
+,
+  equation:"2Rb + 2H₂O → 2RbOH + H₂↑ (explosive)"
+});
+add("el_cs","water", {
+  title:"Extremely violent explosion",
+  desc:"Caesium is the most reactive of the common alkali metals — even a small piece reacts with water almost instantaneously and explosively, often described as the most dramatic elemental reaction routinely filmed for chemistry education. It is never handled outside specialised, shielded laboratory conditions.",
+  effect:"explosion", color:"#eee2c8", danger:true,
+  gasName:"hydrogen (ignites explosively)", soundNote:"a loud bang and shattering crackle",
+  video:"caesium metal in water reaction"
+,
+  equation:"2Cs + 2H₂O → 2CsOH + H₂↑ (violently explosive)"
+});
+
+/* ---------------- Fallback engine for any unlisted pair ---------------- */
+function hasTag(id, tag){ return CHEM[id].tags.includes(tag); }
+
+function fallbackReaction(a, b){
+  const A = CHEM[a], B = CHEM[b];
+  const tagsA = A.tags, tagsB = B.tags;
+
+  const isAcidBase = (tagsA.includes("acid") && tagsB.includes("base")) || (tagsA.includes("base") && tagsB.includes("acid"));
+  const isIndicatorAcid = (tagsA.includes("indicator") && tagsB.includes("acid")) || (tagsB.includes("indicator") && tagsA.includes("acid"));
+  const isIndicatorBase = (tagsA.includes("indicator") && tagsB.includes("base")) || (tagsB.includes("indicator") && tagsA.includes("base"));
+  const isMetalAcid = (tagsA.includes("metal") && tagsB.includes("acid")) || (tagsB.includes("metal") && tagsA.includes("acid"));
+  const isOxidizerCatalyst = (tagsA.includes("oxidizer") && (tagsB.includes("catalyst")||tagsB.includes("soap"))) || (tagsB.includes("oxidizer") && (tagsA.includes("catalyst")||tagsA.includes("soap")));
+  const isDyeAny = tagsA.includes("dye") || tagsB.includes("dye");
+  const isSolventSolid = (tagsA.includes("solvent") && tagsB.includes("solid")) || (tagsB.includes("solvent") && tagsA.includes("solid"));
+
+  const isReactiveMetalWater = (tagsA.includes("reactive-metal") && (b==="water"||tagsB.includes("solvent"))) || (tagsB.includes("reactive-metal") && (a==="water"||tagsA.includes("solvent")));
+  const isNobleGasPair = tagsA.includes("inert") || tagsB.includes("inert");
+  const isHalogenAlkali = (tagsA.includes("halogen") && tagsB.includes("alkali-metal")) || (tagsB.includes("halogen") && tagsA.includes("alkali-metal"));
+  const isMetalMetal = tagsA.includes("metal") && tagsB.includes("metal") && !tagsA.includes("reactive-metal") && !tagsB.includes("reactive-metal");
+  const isGasGas = (tagsA.includes("gas") && tagsB.includes("gas"));
+  const isMetalloidAny = tagsA.includes("metalloid") || tagsB.includes("metalloid");
+
+  if(isReactiveMetalWater){
+    const metal = tagsA.includes("reactive-metal") ? A : B;
+    const metalTags = tagsA.includes("reactive-metal") ? tagsA : tagsB;
+    if(metalTags.includes("alkali-metal")){
+      return { title:"Violent, explosive reaction", desc:`${metal.name} is an alkali metal — among the most reactive metals that exist. In contact with water it darts across the surface, throws sparks, and can ignite the hydrogen gas it releases in a small explosion. A real, well-documented phenomenon, only ever safe to watch filmed or in a professionally supervised demo — never something to try yourself.`, effect:"explosion", color:"#f0e9d8", danger:true, gasName:"hydrogen (often ignites)", soundNote:"sharp pops, a hiss, and a bang" };
+    }
+    return { title:"Vigorous, sparking reaction", desc:`${metal.name} is a reactive metal — in contact with water it fizzes hard, throws off heat, and can spark as hydrogen gas escapes. A real phenomenon, only ever safe to watch in a supervised demo.`, effect:"spark", color:"#f2eee0", danger:true, gasName:"hydrogen", soundNote:"hissing, crackling, occasional pop" };
+  }
+  if(isNobleGasPair){
+    const noble = tagsA.includes("inert") ? A : B;
+    return { title:"No reaction — stays inert", desc:`${noble.name} is a noble gas with a full outer electron shell, so it simply refuses to react. It swirls through the mixture without changing a thing.`, effect:"swirl", color: mixHex(A.color,B.color), gasName:"none", soundNote:"silent" };
+  }
+  if(isHalogenAlkali){
+    return { title:"Bright flash, forms a salt", desc:`${A.name} and ${B.name} combine in a fast, energetic flash of light, locking together into a stable salt crystal.`, effect:"spark", color:"#f0efe6", gasName:"none once fully reacted", soundNote:"a sharp crackle" };
+  }
+  if(isMetalMetal){
+    return { title:"Melts into an alloy", desc:`${A.name} and ${B.name} don't react chemically — they blend smoothly together the way metals do when alloyed.`, effect:"swirl", color: mixHex(A.color,B.color), gasName:"none", soundNote:"silent" };
+  }
+  if(isGasGas){
+    return { title:"Mixes invisibly", desc:`Both substances are gases at room temperature, so they simply diffuse into one another with no visible change.`, effect:"fizz-small", color: mixHex(A.color,B.color), gasName:"both gases mix, none newly formed", soundNote:"silent" };
+  }
+  if(isMetalloidAny && (tagsA.includes("acid")||tagsB.includes("acid"))){
+    return { title:"Slow surface reaction", desc:`The metalloid reacts sluggishly with the acid, forming a thin layer on its surface rather than dissolving outright.`, effect:"fizz-small", color: mixHex(A.color,B.color), soundNote:"faint, gentle bubbling" };
+  }
+  if(isAcidBase){
+    return { title:"Fizzes and neutralizes", desc:`${A.name} and ${B.name} neutralize each other, releasing small gas bubbles as the reaction settles toward a calmer, more neutral mixture.`, effect:"fizz-small", color:"#e5e6d0" };
+  }
+  if(isIndicatorAcid){
+    return { title:"Shifts warm (pink/red)", desc:`As an acid–indicator pair, the mixture shifts toward a warmer pink or red tone.`, effect:"colorchange", color:"#d98a9a" };
+  }
+  if(isIndicatorBase){
+    return { title:"Shifts cool (blue/green)", desc:`As a base–indicator pair, the mixture shifts toward a cooler blue or green tone.`, effect:"colorchange", color:"#6fa89a" };
+  }
+  if(isMetalAcid){
+    return { title:"Bubbles slowly", desc:`The acid slowly reacts with the metal's surface, releasing a thin stream of gas bubbles over time.`, effect:"fizz-small", color:"#dfe3dd" };
+  }
+  if(isOxidizerCatalyst){
+    return { title:"Light foaming", desc:`The oxidizer breaks down a little faster in the presence of the other substance, producing a short-lived layer of foam.`, effect:"foam-small", color:"#e6ecdc" };
+  }
+  if(isDyeAny){
+    const other = tagsA.includes("dye") ? B : A;
+    return { title:"Takes on color", desc:`The dye disperses through the ${other.name.toLowerCase()}, tinting the whole mixture without any chemical change.`, effect:"dissolve", color: mixHex(A.color,B.color) };
+  }
+  if(isSolventSolid){
+    return { title:"Dissolves", desc:`The solid breaks apart in the liquid and disperses evenly, with no dramatic visible change.`, effect:"dissolve", color: mixHex(A.color,B.color) };
+  }
+  // total default
+  return { title:"Swirls together", desc:`${A.name} and ${B.name} mix without any obvious reaction — they simply combine into a single blended liquid.`, effect:"swirl", color: mixHex(A.color,B.color) };
+}
+
+function mixHex(h1, h2){
+  const c1 = hexToRgb(h1), c2 = hexToRgb(h2);
+  const r = Math.round((c1.r+c2.r)/2), g = Math.round((c1.g+c2.g)/2), b = Math.round((c1.b+c2.b)/2);
+  return `rgb(${r},${g},${b})`;
+}
+function hexToRgb(hex){
+  hex = hex.replace("#","");
+  return { r: parseInt(hex.substring(0,2),16), g: parseInt(hex.substring(2,4),16), b: parseInt(hex.substring(4,6),16) };
+}
+
+/* ---------------- UI wiring ---------------- */
+const svgNS = "http://www.w3.org/2000/svg";
+const shelfGrid = document.getElementById("shelfGrid");
+const shelfSearch = document.getElementById("shelfSearch");
+const tabRow = document.getElementById("tabRow");
+const shelfCount = document.getElementById("shelfCount");
+const badgeStrip = document.getElementById("badgeStrip");
+const slotsRow = document.getElementById("slotsRow");
+const mixBtn = document.getElementById("mixBtn");
+const clearBtn = document.getElementById("clearBtn");
+const surpriseBtn = document.getElementById("surpriseBtn");
+const exportBtn = document.getElementById("exportBtn");
+const resultArea = document.getElementById("resultArea");
+const logList = document.getElementById("logList");
+const counterNum = document.getElementById("counterNum");
+const benchHint = document.getElementById("benchHint");
+const liquid = document.getElementById("liquid");
+const beakerWrap = document.getElementById("beakerWrap");
+const bubbleGroup = document.getElementById("bubbleGroup");
+const smokeGroup = document.getElementById("smokeGroup");
+const flashOverlay = document.getElementById("flashOverlay");
+const fillNote = document.getElementById("fillNote");
+const vesselRow = document.getElementById("vesselRow");
+const tempSlider = document.getElementById("tempSlider");
+const tempReadout = document.getElementById("tempReadout");
+const soundBtn = document.getElementById("soundBtn");
+const toastEl = document.getElementById("toast");
+
+let selected = [];
+let quantities = {};
+let mixCount = 0;
+let currentVessel = "beaker";
+let temperature = 22;
+let soundOn = true;
+let audioCtx = null;
+let earnedBadges = new Set();
+let lastFillRatio = 0;
+let currentTab = "all";
+
+const state = { mixCount:0, usedElements:new Set(), dangerCount:0, maxSelected:0, maxTemp:22, minTemp:22, maxFillRatio:0, fullSetup:false };
+
+/* ---- Vessels ---- */
+const VESSELS = {
+  beaker: {
+    label:"Beaker", capacity:250,
+    outline:"M 40 20 L 40 60 L 15 165 Q 12 175 25 175 L 125 175 Q 138 175 135 165 L 110 60 L 110 20 Z",
+    rim:{x1:34,y1:18,x2:116,y2:18},
+    bodyTop:60, bodyBottom:172, bodyXRange:[15,135]
+  },
+  flask: {
+    label:"Conical Flask", capacity:200,
+    outline:"M 68 20 L 68 70 L 20 165 Q 15 175 30 175 L 120 175 Q 135 175 130 165 L 82 70 L 82 20 Z",
+    rim:{x1:62,y1:18,x2:88,y2:18},
+    bodyTop:70, bodyBottom:172, bodyXRange:[20,130]
+  },
+  tube: {
+    label:"Test Tube", capacity:50,
+    outline:"M 55 20 L 55 150 Q 55 175 75 175 Q 95 175 95 150 L 95 20 Z",
+    rim:{x1:50,y1:18,x2:100,y2:18},
+    bodyTop:20, bodyBottom:172, bodyXRange:[55,95]
+  }
+};
+
+/* ---- Shelf tabs ---- */
+const TABS = [
+  {id:"all", label:"All"},
+  {id:"household", label:"Household"},
+  {id:"metal", label:"Metals"},
+  {id:"reactive-nonmetal", label:"Nonmetals"},
+  {id:"noble-gas", label:"Noble Gases"},
+  {id:"halogen", label:"Halogens"},
+  {id:"alkali-metal", label:"Alkali"},
+  {id:"alkaline-earth", label:"Alkaline Earth"},
+  {id:"transition-metal", label:"Transition"},
+  {id:"metalloid", label:"Metalloids"},
+  {id:"lanthanide", label:"Lanthanide"},
+  {id:"actinide", label:"Actinide"}
+];
+
+/* ---- Achievements ---- */
+const ACHIEVEMENTS = [
+  {id:"first", label:"First Mix", check: s=>s.mixCount>=1},
+  {id:"scientist", label:"Mad Scientist (25 mixes)", check: s=>s.mixCount>=25},
+  {id:"explorer", label:"Element Explorer (10 elements)", check: s=>s.usedElements.size>=10},
+  {id:"careful", label:"Careful! (triggered a danger)", check: s=>s.dangerCount>=1},
+  {id:"bigbatch", label:"Big Batch (4 at once)", check: s=>s.maxSelected>=4},
+  {id:"heat", label:"Heat It Up (90°C+)", check: s=>s.maxTemp>=90},
+  {id:"freeze", label:"Deep Freeze (5°C or less)", check: s=>s.minTemp<=5},
+  {id:"full", label:"Full Beaker (90%+ capacity)", check: s=>s.maxFillRatio>=0.9},
+  {id:"labtech", label:"Lab Technician (full equipment setup)", check: s=>s.fullSetup}
+];
+
+/* ---- Color helpers ---- */
+function parseColor(str){
+  if(!str) return {r:200,g:200,b:200};
+  if(str[0]==="#") return hexToRgb(str);
+  const m = str.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+  if(m) return { r:+m[1], g:+m[2], b:+m[3] };
+  return {r:200,g:200,b:200};
+}
+function blend(c1, c2, t=0.5){
+  const a = parseColor(c1), b = parseColor(c2);
+  return `rgb(${Math.round(a.r+(b.r-a.r)*t)},${Math.round(a.g+(b.g-a.g)*t)},${Math.round(a.b+(b.b-a.b)*t)})`;
+}
+function weightedColorMix(ids, qtys){
+  let totalW=0, r=0,g=0,b=0;
+  ids.forEach((id,i)=>{
+    const w = qtys[i] || 1;
+    const c = hexToRgb(CHEM[id].color);
+    r += c.r*w; g += c.g*w; b += c.b*w; totalW += w;
+  });
+  if(totalW===0) totalW=1;
+  return `rgb(${Math.round(r/totalW)},${Math.round(g/totalW)},${Math.round(b/totalW)})`;
+}
+function elementUnit(id){
+  const c = CHEM[id];
+  return (c.tags.includes("liquid") || c.tags.includes("gas")) ? "mL" : "g";
+}
+
+/* ---- pH estimation (illustrative — for the sandbox, not lab-accurate) ---- */
+const PH_OVERRIDES = {
+  water:7, salt:7, sugar:7, food_dye:7, iron:7, iodine:7, cornstarch:7, alcohol:7, yeast:7, cabbage:7,
+  baking_soda:8.3, chalk:9.5, dish_soap:9.5, ammonia:11.5, bleach:12.5,
+  vinegar:2.5, lemon_juice:2.3, peroxide:6.2, milk:6.6, copper_sulf:4.0, dry_ice:4.5,
+  hcl:1.0, naoh:13.0, h2so4:0.5, litmus:7, phenolphthalein:7, universal_indicator:7,
+  limewater:12.4, kmno4:7, ferrous_sulfate:3.7, sodium_carbonate:11.0, ammonium_chloride:5.0, silver_nitrate:5.5,
+  hno3:1.0, koh:13.5, methyl_orange:7, quicklime:12.8, plaster_of_paris:7, gypsum:7,
+  bleaching_powder:10.5, zinc_sulfate:5.0, lead_nitrate:4.0, barium_chloride:6.5, sodium_sulfate:7,
+  borax:9.2, boric_acid:5.1, potassium_dichromate:4.0, ferric_chloride:2.0, potassium_chlorate:7,
+  manganese_dioxide:7, chloroform:7, carbon_tetrachloride:7, methanol:7, ethanol:7, glycerol:7,
+  phenol:5.5, formaldehyde:3.5, acetaldehyde:7, acetone:7, benzaldehyde:7, formic_acid:2.4,
+  oxalic_acid:1.3, benzoic_acid:2.8, aniline:8.5, glucose:7, tollens_reagent:11, fehlings_solution:13,
+  benedicts_solution:11, dnp_reagent:7, schiffs_reagent:7, potassium_iodide:7, sodium_thiosulfate:7,
+  lead_acetate:6.0, potassium_ferrocyanide:8.0, ammonium_oxalate:7
+};
+function basePH(id){
+  if(PH_OVERRIDES[id] !== undefined) return PH_OVERRIDES[id];
+  const c = CHEM[id];
+  if(c.tags.includes("acid")) return 3;
+  if(c.tags.includes("base")) return 11;
+  if(c.tags.includes("alkali-metal")) return 13.5;
+  if(c.tags.includes("alkaline-earth")) return 12;
+  if(c.tags.includes("halogen")) return 4.5;
+  return 7;
+}
+function estimateMixPH(ids, qtys){
+  let totalW = 0, weighted = 0;
+  ids.forEach((id,i)=>{
+    const w = qtys[i] || 1;
+    weighted += basePH(id)*w;
+    totalW += w;
+  });
+  if(totalW===0) return 7;
+  return Math.max(0, Math.min(14, weighted/totalW));
+}
+function phLabel(ph){
+  if(ph <= 2.5) return "Strongly acidic";
+  if(ph <= 5.5) return "Acidic";
+  if(ph < 8.5) return "Neutral";
+  if(ph < 11.5) return "Basic";
+  return "Strongly basic";
+}
+function renderPhMeter(ph){
+  const pct = (ph/14)*100;
+  return `
+    <div class="ph-meter">
+      <div class="ph-meter-head">
+        <span>Estimated pH of product</span>
+        <span class="ph-value">${ph.toFixed(1)} — ${phLabel(ph)}</span>
+      </div>
+      <div class="ph-bar">
+        <div class="ph-marker" style="left:${pct}%;"></div>
+      </div>
+      <div class="ph-scale"><span>0 acidic</span><span>7 neutral</span><span>14 basic</span></div>
+    </div>
+  `;
+}
+
+/* ---- Shelf rendering ---- */
+function matchesTab(id, tab){
+  const c = CHEM[id];
+  if(tab==="all") return true;
+  if(tab==="household") return !c.tags.includes("element");
+  return c.tags.includes(tab);
+}
+function renderTabs(){
+  tabRow.innerHTML = "";
+  TABS.forEach(t=>{
+    const chip = document.createElement("div");
+    chip.className = "tab-chip" + (t.id===currentTab ? " active" : "");
+    chip.textContent = t.label;
+    chip.addEventListener("click", ()=>{ currentTab = t.id; renderTabs(); renderShelf(); });
+    tabRow.appendChild(chip);
+  });
+}
+function renderShelf(){
+  const q = shelfSearch.value.trim().toLowerCase();
+  shelfGrid.innerHTML = "";
+  let shown = 0;
+  Object.entries(CHEM).forEach(([id, c])=>{
+    if(!matchesTab(id, currentTab)) return;
+    if(q && !c.name.toLowerCase().includes(q) && !(c.symbol && c.symbol.toLowerCase().includes(q))) return;
+    shown++;
+    const isEl = c.tags.includes("element");
+    const el = document.createElement("div");
+    el.className = "vial" + (isEl ? " el" : "");
+    el.dataset.id = id;
+    el.title = isEl ? `${c.name} — atomic #${c.num}, ${c.cat.replace(/-/g," ")}` : c.name;
+    el.innerHTML = `
+      ${isEl ? `<span class="num">${c.num}</span>` : ""}
+      <div class="glyph" style="background:${c.color}22; border-color:${c.color};">${isEl ? c.symbol : c.emoji}</div>
+      <div class="name">${c.name}</div>
+      <div class="formula">${c.formula}</div>
+    `;
+    el.addEventListener("click", ()=> toggleSelect(id));
+    shelfGrid.appendChild(el);
+  });
+  shelfCount.textContent = shown;
+  updateShelfHighlight();
+}
+shelfSearch.addEventListener("input", renderShelf);
+
+function toggleSelect(id){
+  const idx = selected.indexOf(id);
+  if(idx > -1){
+    selected.splice(idx,1);
+  } else {
+    if(selected.length >= 4) selected.shift();
+    selected.push(id);
+    if(quantities[id]===undefined) quantities[id] = 25;
+  }
+  updateShelfHighlight();
+  renderSlots();
+}
+function updateShelfHighlight(){
+  document.querySelectorAll(".vial").forEach(v=>{
+    v.classList.toggle("selected", selected.includes(v.dataset.id));
+  });
+}
+
+/* ---- Slots + quantities ---- */
+function renderSlots(){
+  slotsRow.innerHTML = "";
+  const count = Math.max(selected.length, 2);
+  for(let i=0;i<count;i++){
+    if(i>0){
+      const plus = document.createElement("div");
+      plus.className = "plus";
+      plus.textContent = "+";
+      slotsRow.appendChild(plus);
+    }
+    const id = selected[i];
+    const unit = document.createElement("div");
+    unit.className = "slot-unit";
+    if(id){
+      const c = CHEM[id];
+      const qty = quantities[id] ?? 25;
+      const unitLabel = elementUnit(id);
+      unit.innerHTML = `
+        <div class="slot filled">
+          <span class="glyph" style="font-size:16px;">${c.tags.includes("element") ? c.symbol : c.emoji}</span>
+          <span>${c.name}</span>
+        </div>
+        <div class="qty-row">
+          <input type="range" min="5" max="100" value="${qty}" data-id="${id}" class="qtySlider">
+          <span class="qty-label">${qty} ${unitLabel}</span>
+        </div>`;
+    } else {
+      unit.innerHTML = `<div class="slot"><span>empty</span></div><div class="qty-row" style="visibility:hidden;"><input type="range"><span class="qty-label">—</span></div>`;
+    }
+    slotsRow.appendChild(unit);
+  }
+  slotsRow.querySelectorAll(".qtySlider").forEach(inp=>{
+    inp.addEventListener("input", e=>{
+      const id = e.target.dataset.id;
+      quantities[id] = parseInt(e.target.value,10);
+      e.target.nextElementSibling.textContent = `${quantities[id]} ${elementUnit(id)}`;
+      updateFillDisplay();
+    });
+  });
+  mixBtn.disabled = selected.length < 2;
+  benchHint.textContent = selected.length >= 2 ? `ready to mix (${selected.length} substances)` : "select 2–4 to mix";
+  updateFillDisplay();
+  if(typeof updateChecklist === "function") updateChecklist();
+}
+
+/* ---- Vessel rendering ---- */
+function renderVesselButtons(){
+  vesselRow.innerHTML = "";
+  Object.entries(VESSELS).forEach(([key, v])=>{
+    const btn = document.createElement("button");
+    btn.className = "vessel-btn" + (key===currentVessel ? " active" : "");
+    btn.textContent = v.label;
+    btn.addEventListener("click", ()=>{
+      currentVessel = key;
+      renderVesselButtons();
+      applyVessel();
+    });
+    vesselRow.appendChild(btn);
+  });
+}
+function renderGraduations(v){
+  const gradGroup = document.getElementById("gradGroup");
+  gradGroup.innerHTML = "";
+  const steps = 4;
+  for(let i=1;i<=steps;i++){
+    const frac = i/steps;
+    const y = v.bodyBottom - frac*(v.bodyBottom - v.bodyTop);
+    const val = Math.round(v.capacity*frac);
+    const x2 = v.bodyXRange[1] - 6;
+    const x1 = x2 - 8;
+    const line = document.createElementNS(svgNS,"line");
+    line.setAttribute("x1",x1); line.setAttribute("x2",x2);
+    line.setAttribute("y1",y); line.setAttribute("y2",y);
+    line.setAttribute("class","grad-line");
+    gradGroup.appendChild(line);
+    const text = document.createElementNS(svgNS,"text");
+    text.setAttribute("x", x1-2); text.setAttribute("y", y+2.5);
+    text.setAttribute("text-anchor","end");
+    text.setAttribute("class","grad-text");
+    text.textContent = val;
+    gradGroup.appendChild(text);
+  }
+}
+function applyVessel(){
+  const v = VESSELS[currentVessel];
+  document.getElementById("beakerPath").setAttribute("d", v.outline);
+  document.getElementById("beakerOutline").setAttribute("d", v.outline);
+  const rim = document.getElementById("beakerRim");
+  rim.setAttribute("x1", v.rim.x1); rim.setAttribute("y1", v.rim.y1);
+  rim.setAttribute("x2", v.rim.x2); rim.setAttribute("y2", v.rim.y2);
+  renderGraduations(v);
+  updateFillDisplay();
+}
+function updateFillDisplay(){
+  const v = VESSELS[currentVessel];
+  const totalQty = selected.reduce((sum,id)=> sum + (quantities[id]||0), 0);
+  const ratio = Math.min(totalQty / v.capacity, 1);
+  lastFillRatio = ratio;
+  const bodyHeight = v.bodyBottom - v.bodyTop;
+  const height = Math.max(ratio*bodyHeight, selected.length ? 10 : 8);
+  const y = v.bodyBottom - height;
+  liquid.setAttribute("y", y);
+  liquid.setAttribute("height", height);
+  liquid.setAttribute("x", v.bodyXRange[0]);
+  liquid.setAttribute("width", v.bodyXRange[1]-v.bodyXRange[0]);
+  fillNote.textContent = `${totalQty} / ${v.capacity} mL capacity${ratio>=1 ? " — overflowing!" : ""}`;
+  return ratio;
+}
+
+/* ---- Temperature ---- */
+tempSlider.addEventListener("input", ()=>{
+  temperature = parseInt(tempSlider.value,10);
+  tempReadout.textContent = `${temperature}°C`;
+  tempReadout.classList.toggle("cold", temperature<10);
+  tempReadout.classList.toggle("hot", temperature>80);
+  if(typeof updateTempLabels === "function") updateTempLabels();
+});
+
+/* ---- Sound ---- */
+function ensureAudio(){
+  if(!audioCtx){
+    try{ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){}
+  } else if(audioCtx.state === "suspended"){
+    audioCtx.resume();
+  }
+}
+function noiseBurst(duration, filterFreq, gainVal){
+  if(!audioCtx) return;
+  const bufferSize = Math.floor(audioCtx.sampleRate*duration);
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for(let i=0;i<bufferSize;i++) data[i] = (Math.random()*2-1) * (1-i/bufferSize);
+  const src = audioCtx.createBufferSource(); src.buffer = buffer;
+  const filter = audioCtx.createBiquadFilter(); filter.type="bandpass"; filter.frequency.value = filterFreq;
+  const gain = audioCtx.createGain(); gain.gain.value = gainVal;
+  src.connect(filter).connect(gain).connect(audioCtx.destination);
+  src.start();
+}
+function tone(freq, duration, type, gainVal){
+  if(!audioCtx) return;
+  const osc = audioCtx.createOscillator(); osc.type = type || "sine"; osc.frequency.value = freq;
+  const gain = audioCtx.createGain(); gain.gain.value = gainVal || 0.12;
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+duration);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(); osc.stop(audioCtx.currentTime+duration);
+}
+
+/* ---- Distinct, "real-life" sound effects ---- */
+function popSound(){
+  tone(140, 0.08, "square", 0.18);
+  noiseBurst(0.12, 4200, 0.16);
+}
+function bangSound(){
+  noiseBurst(0.5, 500, 0.32);
+  tone(60, 0.7, "sawtooth", 0.26);
+  setTimeout(()=> popSound(), 140);
+}
+function crackleSound(){
+  for(let i=0;i<7;i++){
+    setTimeout(()=> noiseBurst(0.05, 3000+Math.random()*3500, 0.07), i*70+Math.random()*40);
+  }
+  tone(1200, 0.15, "square", 0.05);
+}
+function hissSound(){
+  noiseBurst(1.3, 6200, 0.065);
+}
+function fizzSound(){
+  noiseBurst(0.9, 3500, 0.09);
+  for(let i=0;i<5;i++){
+    setTimeout(()=> noiseBurst(0.08, 5000+Math.random()*2200, 0.045), i*160+Math.random()*80);
+  }
+}
+function foamSound(){
+  noiseBurst(1.1, 1800, 0.11);
+  for(let i=0;i<6;i++){
+    setTimeout(()=> noiseBurst(0.1, 2200+Math.random()*1600, 0.05), i*150+Math.random()*100);
+  }
+}
+function bubbleSound(){
+  for(let i=0;i<5;i++){
+    setTimeout(()=> tone(280+Math.random()*300, 0.1, "sine", 0.05), i*150);
+  }
+}
+function chimeSound(){
+  [523,659,784].forEach((f,i)=> setTimeout(()=> tone(f,0.35,"sine",0.06), i*90));
+}
+function plopSound(){
+  tone(180, 0.15, "sine", 0.15);
+  setTimeout(()=> tone(90, 0.2, "sine", 0.1), 90);
+}
+function whooshSound(){
+  noiseBurst(0.5, 1200, 0.05);
+}
+function alarmSound(){
+  tone(880, 0.25, "square", 0.1);
+  setTimeout(()=> tone(660, 0.25, "square", 0.1), 280);
+}
+function blipSound(){
+  tone(500, 0.2, "sine", 0.06);
+}
+
+function playSound(reaction){
+  if(!soundOn || !audioCtx) return;
+  const note = (reaction.soundNote || "").toLowerCase();
+  const e = reaction.effect || "";
+
+  // Prefer whatever the reaction actually says happens in real life
+  if(note.includes("silent")) return;
+  if(note.includes("bang") || note.includes("pop") || note.includes("crack") && note.includes("bang")) { bangSound(); return; }
+  if(note.includes("crackl") || note.includes("spark")) { crackleSound(); return; }
+  if(note.includes("hiss") || note.includes("roar")) { hissSound(); return; }
+  if(note.includes("rushing") || note.includes("lively")) { fizzSound(); return; }
+  if(note.includes("fizz")) { fizzSound(); return; }
+  if(note.includes("gentle") || note.includes("steady")) { bubbleSound(); return; }
+
+  // Fall back to the visual effect type when no soundNote is set
+  if(e.startsWith("fizz")) fizzSound();
+  else if(e.startsWith("foam")) foamSound();
+  else if(e === "fog") hissSound();
+  else if(e === "spark") crackleSound();
+  else if(e === "explosion") bangSound();
+  else if(e === "danger") alarmSound();
+  else if(e === "colorchange" || e === "colorchange-fizz") chimeSound();
+  else if(e === "precipitate") plopSound();
+  else if(e === "dissolve" || e === "swirl") whooshSound();
+  else blipSound();
+}
+soundBtn.addEventListener("click", ()=>{
+  soundOn = !soundOn;
+  soundBtn.textContent = soundOn ? "🔊 on" : "🔇 off";
+  soundBtn.classList.toggle("on", soundOn);
+});
+
+/* ---- Toast ---- */
+function showToast(msg){
+  toastEl.textContent = msg;
+  toastEl.classList.add("show");
+  clearTimeout(toastEl._t);
+  toastEl._t = setTimeout(()=> toastEl.classList.remove("show"), 2800);
+}
+
+/* ---- Achievements ---- */
+function renderBadges(){
+  badgeStrip.innerHTML = "";
+  ACHIEVEMENTS.forEach(a=>{
+    const got = a.check(state);
+    if(got && !earnedBadges.has(a.id)){
+      earnedBadges.add(a.id);
+      showToast(`🏅 Achievement unlocked: ${a.label}`);
+    }
+    const chip = document.createElement("span");
+    chip.className = "badge" + (got ? " earned" : "");
+    chip.textContent = (got ? "✓ " : "") + a.label;
+    badgeStrip.appendChild(chip);
+  });
+}
+function updateAchievements(ids, reaction){
+  state.mixCount = mixCount;
+  ids.forEach(id=>{ if(CHEM[id].tags.includes("element")) state.usedElements.add(id); });
+  if(reaction.danger) state.dangerCount++;
+  state.maxSelected = Math.max(state.maxSelected, ids.length);
+  state.maxTemp = Math.max(state.maxTemp, temperature);
+  state.minTemp = Math.min(state.minTemp, temperature);
+  state.maxFillRatio = Math.max(state.maxFillRatio, lastFillRatio);
+  renderBadges();
+}
+
+/* ---- Multi-substance reaction combiner ---- */
+const EFFECT_RANK = { swirl:1, dissolve:1, "fizz-small":2, "foam-small":2, fog:2, precipitate:3, colorchange:3, "colorchange-fizz":3, fizz:4, foam:4, spark:5, explosion:6, danger:6 };
+function combineReactions(ids, qtys){
+  const pairs = [];
+  for(let i=0;i<ids.length;i++){
+    for(let j=i+1;j<ids.length;j++){
+      const r = REACTIONS[pairKey(ids[i],ids[j])] || fallbackReaction(ids[i],ids[j]);
+      pairs.push({ a:ids[i], b:ids[j], r });
+    }
+  }
+  const dangerPairs = pairs.filter(p=>p.r.danger);
+  const pool = dangerPairs.length ? dangerPairs : pairs;
+  const primary = pool.slice().sort((x,y)=> (EFFECT_RANK[y.r.effect]||0) - (EFFECT_RANK[x.r.effect]||0))[0];
+
+  let desc = primary.r.desc;
+  const others = pairs.filter(p=>p!==primary).map(p=> `${CHEM[p.a].name} + ${CHEM[p.b].name} (${p.r.title.toLowerCase()})`);
+  if(others.length) desc += ` This batch also involves: ${others.join(", ")}.`;
+
+  const baseColor = weightedColorMix(ids, qtys);
+  const finalColor = blend(baseColor, primary.r.color, 0.55);
+  const ph = estimateMixPH(ids, qtys);
+
+  return { title: primary.r.title, desc, effect: primary.r.effect, color: finalColor, danger: !!primary.r.danger, video: primary.r.video, equation: primary.r.equation, ph, pairs };
+}
+
+/* ---- Mixing ---- */
+clearBtn.addEventListener("click", ()=>{
+  selected = [];
+  updateShelfHighlight();
+  renderSlots();
+  resultArea.innerHTML = `<p class="placeholder">Your outcome will appear here.</p>`;
+  flashOverlay.classList.remove("go");
+  bubbleGroup.innerHTML = "";
+  smokeGroup.innerHTML = "";
+  liquid.setAttribute("fill", "#cfe0e8");
+  updateFillDisplay();
+});
+
+mixBtn.addEventListener("click", runMix);
+
+function runMix(){
+  if(selected.length < 2) return;
+  ensureAudio();
+  const ids = [...selected];
+  const qtys = ids.map(id => quantities[id] || 25);
+  const combo = combineReactions(ids, qtys);
+  mixCount++;
+  counterNum.textContent = mixCount;
+  animate(combo);
+  showResult(combo, ids);
+  logEntry(combo, ids);
+  playSound(combo);
+  updateAchievements(ids, combo);
+}
+
+function animate(reaction){
+  const v = VESSELS[currentVessel];
+  updateFillDisplay();
+  liquid.setAttribute("fill", reaction.color);
+  bubbleGroup.innerHTML = "";
+  smokeGroup.innerHTML = "";
+
+  const isFizz = reaction.effect && reaction.effect.startsWith("fizz");
+  const isFoam = reaction.effect && reaction.effect.startsWith("foam");
+  const isDanger = reaction.effect === "danger" || reaction.danger;
+  const isFog = reaction.effect === "fog";
+  const isSpark = reaction.effect === "spark";
+  const isExplosion = reaction.effect === "explosion";
+
+  const tempFactor = temperature >= 80 ? 1.6 : temperature <= 5 ? 0.5 : 1;
+
+  if(isDanger || isExplosion){
+    beakerWrap.classList.remove("shake");
+    void beakerWrap.offsetWidth;
+    beakerWrap.classList.add("shake");
+  }
+  if(isExplosion){
+    flashOverlay.classList.remove("go");
+    void flashOverlay.offsetWidth;
+    flashOverlay.classList.add("go");
+  }
+
+  const bubbleCount = Math.round((isFizz?14:isFoam?20:isFog?10:isSpark?16:isExplosion?24:5) * tempFactor);
+  const [xMin,xMax] = v.bodyXRange;
+  for(let i=0;i<bubbleCount;i++){
+    const b = document.createElementNS(svgNS,"circle");
+    const x = xMin+6 + Math.random()*Math.max(xMax-xMin-12, 4);
+    const r = isFoam ? 4+Math.random()*4 : isExplosion ? 3+Math.random()*4 : 2+Math.random()*3;
+    b.setAttribute("cx", x);
+    b.setAttribute("cy", v.bodyBottom-4);
+    b.setAttribute("r", r);
+    b.setAttribute("class","bubble");
+    if(isSpark || isExplosion) b.setAttribute("fill", "#f2c14e");
+    if(isFog) b.setAttribute("fill", "#e8f4f6");
+    bubbleGroup.appendChild(b);
+    const delay = Math.random()*400;
+    const duration = (isExplosion ? 500 : 900) + Math.random()*700;
+    b.animate([
+      { transform:"translateY(0px)", opacity:0.75 },
+      { transform:`translateY(-${100+Math.random()*40}px)`, opacity:0 }
+    ], { duration, delay, easing:"ease-out", fill:"forwards" });
+  }
+
+  if(isFog || isExplosion || temperature >= 90){
+    const puffCount = isExplosion ? 10 : 6;
+    for(let i=0;i<puffCount;i++){
+      const s = document.createElementNS(svgNS,"circle");
+      const x = xMin + Math.random()*(xMax-xMin);
+      s.setAttribute("cx", x);
+      s.setAttribute("cy", v.bodyTop+10);
+      s.setAttribute("r", 8+Math.random()*10);
+      s.setAttribute("class","smoke-puff");
+      smokeGroup.appendChild(s);
+      s.animate([
+        { transform:"translateY(0px) scale(0.6)", opacity:0.6 },
+        { transform:`translateY(-${40+Math.random()*30}px) scale(1.4)`, opacity:0 }
+      ], { duration: 1400+Math.random()*600, delay: Math.random()*300, easing:"ease-out", fill:"forwards" });
+    }
+  }
+}
+
+function reactionDetails(reaction){
+  const e = reaction.effect || "";
+  const details = [];
+
+  const gasEffects = ["fizz","fizz-small","foam","foam-small","fog","spark","explosion"];
+  if(gasEffects.includes(e) || reaction.gasName){
+    const guess = e==="fog" ? "vapour / fumes" : (e==="spark"||e==="explosion") ? "hydrogen or a reactive gas" : "carbon dioxide";
+    details.push({icon:"💨", label:"Gas released", value: reaction.gasName || guess});
+  } else {
+    details.push({icon:"💨", label:"Gas released", value:"none observed"});
+  }
+
+  if(e==="colorchange" || e==="colorchange-fizz" || reaction.colorNote){
+    details.push({icon:"🎨", label:"Colour change", value: reaction.colorNote || "yes — see description above"});
+  } else {
+    details.push({icon:"🎨", label:"Colour change", value:"minimal or none"});
+  }
+
+  if(e==="precipitate" || reaction.precipitateName){
+    details.push({icon:"⬇️", label:"Precipitate", value: reaction.precipitateName || "a solid forms and settles"});
+  } else {
+    details.push({icon:"⬇️", label:"Precipitate", value:"none forms"});
+  }
+
+  if(e==="spark" || e==="explosion" || reaction.soundNote){
+    details.push({icon:"🔊", label:"Sound", value: reaction.soundNote || (e==="explosion" ? "a sharp bang or pop" : "hissing / crackling")});
+  } else if(e.startsWith("fizz") || e.startsWith("foam")){
+    details.push({icon:"🔊", label:"Sound", value:"gentle fizzing"});
+  } else {
+    details.push({icon:"🔊", label:"Sound", value:"silent"});
+  }
+
+  return details;
+}
+function renderDetailGrid(reaction){
+  return `<div class="detail-grid">${reactionDetails(reaction).map(d=>
+    `<div class="detail-chip">${d.icon} <span>${d.label}:</span> <b>${d.value}</b></div>`
+  ).join("")}</div>`;
+}
+
+function showResult(reaction, ids){
+  const dangerClass = reaction.danger ? " danger" : "";
+  const icon = reaction.danger ? "⚠️" : "🧪";
+  let videoHtml = "";
+  if(reaction.video){
+    const q = encodeURIComponent(reaction.video);
+    videoHtml = `<a class="video-link" href="https://www.youtube.com/results?search_query=${q}" target="_blank" rel="noopener">▶ watch a real demo of this</a>`;
+  }
+  const equationHtml = reaction.equation
+    ? `<div class="equation-box"><span>Balanced equation</span>${reaction.equation}</div>`
+    : `<div class="equation-box"><span>Balanced equation</span>no standard equation for this simplified mix</div>`;
+  const tags = ids.map(id => `<span class="tag">${CHEM[id].name} · ${quantities[id]||25}${elementUnit(id)}</span>`).join("");
+  resultArea.innerHTML = `
+    <div class="result-card${dangerClass}">
+      <p class="result-title">${icon} ${reaction.title}</p>
+      <p class="result-desc">${reaction.desc}</p>
+      ${equationHtml}
+      ${renderDetailGrid(reaction)}
+      ${renderPhMeter(reaction.ph)}
+      ${videoHtml}
+      <div class="tag-row">${tags}</div>
+    </div>
+  `;
+}
+
+function logEntry(reaction, ids){
+  if(logList.querySelector(".log-empty")) logList.innerHTML = "";
+  const now = new Date();
+  const time = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  const names = ids.map(id => `${CHEM[id].tags.includes("element") ? CHEM[id].symbol : CHEM[id].emoji} ${CHEM[id].name}`).join(" + ");
+  const entry = document.createElement("div");
+  entry.className = "log-entry";
+  entry.innerHTML = `
+    <div class="meta"><span>entry #${String(mixCount).padStart(3,'0')}</span><span>${time} · ${VESSELS[currentVessel].label} · ${temperature}°C</span></div>
+    <p class="headline${reaction.danger ? " danger" : ""}">${names} → ${reaction.title}</p>
+    <p>${reaction.desc}</p>
+    <p class="mono" style="font-size:11px; color:var(--ink-faint);">Equation: ${reaction.equation || "no standard equation for this mix"} · Estimated pH: ${reaction.ph.toFixed(1)} (${phLabel(reaction.ph)})</p>
+  `;
+  logList.prepend(entry);
+}
+
+/* ---- Surprise me ---- */
+surpriseBtn.addEventListener("click", ()=>{
+  const ids = Object.keys(CHEM);
+  const n = 2 + Math.floor(Math.random()*3);
+  const picks = [];
+  while(picks.length < n){
+    const id = ids[Math.floor(Math.random()*ids.length)];
+    if(!picks.includes(id)) picks.push(id);
+  }
+  selected = picks;
+  picks.forEach(id => { quantities[id] = 15 + Math.floor(Math.random()*70); });
+  updateShelfHighlight();
+  renderSlots();
+  runMix();
+});
+
+/* ---- Export notebook ---- */
+exportBtn.addEventListener("click", ()=>{
+  const entries = Array.from(logList.querySelectorAll(".log-entry")).map(e => e.innerText).reverse();
+  const text = "The Mixing Bench — Lab Notebook Export\n" + new Date().toString() + "\n\n" + (entries.length ? entries.join("\n\n---\n\n") : "No entries yet.");
+  const blob = new Blob([text], { type:"text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "mixing-bench-log.txt";
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+});
+
+/* ---------------- General Reaction Section (NCERT, Classes 9–12) ---------------- */
+const ncertTabs = document.getElementById("ncertTabs");
+const ncertList = document.getElementById("ncertList");
+const ncertCount = document.getElementById("ncertCount");
+let ncertFilter = "all";
+
+const NCERT_REACTIONS = [
+  { cls:9, chapter:"Is Matter Around Us Pure?", title:"Iron + Sulfur → Iron Sulfide", equation:"Fe + S →(heat) FeS",
+    desc:"When iron filings and sulfur powder are heated together, they combine chemically into a new compound, iron(II) sulfide — no longer attracted to a magnet and no longer separable by physical means, unlike a simple mixture of the two.",
+    gasName:"none", colorNote:"grey/yellow powders → dull grey-black solid", precipitateName:"forms a fused grey-black mass", soundNote:"silent",
+    chemIds:["el_fe","el_s"] },
+  { cls:9, chapter:"Atoms and Molecules", title:"Law of Conservation of Mass", equation:"BaCl₂(aq) + Na₂SO₄(aq) → BaSO₄(s)↓ + 2NaCl(aq)",
+    desc:"Barium chloride reacts with sodium sulfate in solution. The total mass of the reactants exactly equals the total mass of the products — the experiment NCERT uses to demonstrate the law of conservation of mass.",
+    gasName:"none", colorNote:"both solutions are colourless; no colour change", precipitateName:"a dense white precipitate of barium sulfate", soundNote:"silent",
+    chemIds:[] },
+  { cls:10, chapter:"Chemical Reactions and Equations", title:"Combination reaction: Magnesium burns in air", equation:"2Mg + O₂ →(burn) 2MgO",
+    desc:"A strip of magnesium ribbon burns in air with a dazzling white light, combining directly with oxygen to form magnesium oxide, a white powdery ash.",
+    gasName:"none (oxygen is consumed, not released)", colorNote:"shiny grey metal → white ash", precipitateName:"none", soundNote:"a soft crackling hiss while burning",
+    chemIds:["el_mg","el_o"] },
+  { cls:10, chapter:"Chemical Reactions and Equations", title:"Thermal decomposition of limestone", equation:"CaCO₃ →(heat) CaO + CO₂↑",
+    desc:"Heating calcium carbonate (limestone / chalk) strongly breaks it down into calcium oxide (quicklime) and carbon dioxide gas — the reaction used in lime kilns.",
+    gasName:"carbon dioxide", colorNote:"white solid stays white, mass decreases as gas escapes", precipitateName:"none", soundNote:"silent",
+    chemIds:["chalk"] },
+  { cls:10, chapter:"Chemical Reactions and Equations", title:"Electrolytic decomposition of water", equation:"2H₂O →(electricity) 2H₂↑ + O₂↑",
+    desc:"Passing an electric current through water splits it into hydrogen gas at one electrode and oxygen gas at the other, in a 2:1 volume ratio.",
+    gasName:"hydrogen and oxygen (2:1 by volume)", colorNote:"none — stays colourless", precipitateName:"none", soundNote:"silent, occasional tiny bubble pops",
+    chemIds:["water"] },
+  { cls:10, chapter:"Chemical Reactions and Equations", title:"Displacement: Iron + Copper sulfate", equation:"Fe + CuSO₄ → FeSO₄ + Cu",
+    desc:"Iron is more reactive than copper, so it displaces copper from copper sulfate solution, coating itself with a reddish-brown layer of copper while the solution fades from blue toward pale green.",
+    gasName:"none", colorNote:"blue solution → pale green, reddish copper deposit forms", precipitateName:"copper metal deposits on the iron", soundNote:"silent",
+    chemIds:["copper_sulf","iron"] },
+  { cls:10, chapter:"Chemical Reactions and Equations", title:"Corrosion of iron (rusting)", equation:"4Fe + 3O₂ + xH₂O → 2Fe₂O₃·xH₂O",
+    desc:"Iron reacts slowly with oxygen and moisture in the air to form a flaky, reddish-brown coating of hydrated iron oxide — rust — which weakens the metal over time.",
+    gasName:"none released (oxygen is absorbed)", colorNote:"shiny grey → reddish-brown flaky coating", precipitateName:"none (surface coating, not a solution precipitate)", soundNote:"silent",
+    chemIds:["el_fe","el_o"] },
+  { cls:10, chapter:"Acids, Bases and Salts", title:"Metal carbonate + acid → salt + water + CO₂", equation:"NaHCO₃ + CH₃COOH → CH₃COONa + H₂O + CO₂↑",
+    desc:"Baking soda (a metal bicarbonate) reacts with a weak acid such as vinegar, fizzing as carbon dioxide gas is released — the same chemistry behind an antacid tablet.",
+    gasName:"carbon dioxide", colorNote:"none — stays clear/off-white", precipitateName:"none", soundNote:"a lively, rushing fizz",
+    chemIds:["baking_soda","vinegar"] },
+  { cls:10, chapter:"Acids, Bases and Salts", title:"Neutralisation: Acid + Base", equation:"HCl + NaOH → NaCl + H₂O",
+    desc:"An acid and a base react to form a salt and water, releasing heat in the process. Universal indicator or litmus is used in the lab to show the colour swing from acidic to neutral to basic.",
+    gasName:"none", colorNote:"indicator shifts from one end of the pH scale toward green/neutral", precipitateName:"none (product salt usually stays dissolved)", soundNote:"silent, but the mixture warms slightly",
+    chemIds:["cabbage","ammonia"] },
+  { cls:10, chapter:"Metals and Non-metals", title:"Reactive metal + water", equation:"2Na + 2H₂O → 2NaOH + H₂↑ (+heat)",
+    desc:"Highly reactive metals such as sodium and potassium react with cold water fast enough to skate across the surface, release hydrogen gas, and sometimes ignite it.",
+    gasName:"hydrogen", colorNote:"metal surface turns dull as it's consumed; solution turns milky/basic", precipitateName:"none", soundNote:"hissing, crackling, occasional pop or small flame",
+    chemIds:["el_na","water"] },
+  { cls:11, chapter:"Redox Reactions", title:"Sodium + Chlorine → Sodium chloride", equation:"2Na + Cl₂ → 2NaCl",
+    desc:"A textbook oxidation-reduction reaction: sodium loses an electron (is oxidised) to chlorine, which gains one (is reduced), and the two combine in a bright flash to form ordinary table salt.",
+    gasName:"none (chlorine gas is consumed)", colorNote:"a bright yellow-white flash at the moment of reaction", precipitateName:"white crystalline salt forms", soundNote:"a sharp crackle",
+    chemIds:["el_na","el_cl"] },
+  { cls:11, chapter:"Hydrogen", title:"Formation of water", equation:"2H₂ + O₂ →(spark) 2H₂O",
+    desc:"Hydrogen burns in oxygen in a highly exothermic reaction, releasing a large amount of energy as it forms water — one of the most energetic simple reactions in chemistry, and why hydrogen is explored as a rocket and clean-energy fuel.",
+    gasName:"consumes both gases, produces water vapour", colorNote:"none", precipitateName:"none", soundNote:"a sharp pop or bang, and a flash of light",
+    chemIds:["el_h","el_o"] },
+  { cls:11, chapter:"The s-Block Elements", title:"Alkaline earth metal + water: Calcium", equation:"Ca + 2H₂O → Ca(OH)₂ + H₂↑",
+    desc:"Calcium reacts with water at a calmer, steadier pace than the alkali metals, producing a stream of hydrogen bubbles and a cloudy suspension of calcium hydroxide (limewater).",
+    gasName:"hydrogen", colorNote:"solution turns cloudy/milky", precipitateName:"a fine white suspension of calcium hydroxide", soundNote:"a gentle, steady fizz",
+    chemIds:["el_ca","water"] },
+  { cls:12, chapter:"Coordination Compounds", title:"Copper sulfate + excess ammonia", equation:"CuSO₄ + 4NH₃ → [Cu(NH₃)₄]SO₄",
+    desc:"Adding ammonia to a copper sulfate solution first gives a pale blue precipitate, which then dissolves in excess ammonia to form a deep, inky royal-blue coordination complex — a classic demonstration of complex ion formation.",
+    gasName:"none", colorNote:"pale blue → pale blue precipitate → deep royal blue solution", precipitateName:"a pale blue precipitate that redissolves in excess ammonia", soundNote:"silent",
+    chemIds:["copper_sulf","ammonia"] },
+  { cls:12, chapter:"General Principles of Isolation of Elements", title:"Thermite reaction", equation:"2Al + Fe₂O₃ → Al₂O₃ + 2Fe (molten)",
+    desc:"Aluminium powder reduces iron oxide in an extremely exothermic reaction, producing molten iron and a shower of sparks — used industrially to weld railway tracks. This reaction generates temperatures over 2000°C and is only ever performed by trained professionals under strict controls.",
+    gasName:"none released, but intense heat and light", colorNote:"grey powders → white-hot glow, molten orange iron", precipitateName:"molten iron settles at the bottom", soundNote:"a loud hiss/roar and shower of sparks",
+    chemIds:[], danger:true },
+  { cls:12, chapter:"d- and f-Block Elements", title:"Displacement in the Daniell cell", equation:"Zn + CuSO₄ → ZnSO₄ + Cu (+ electricity)",
+    desc:"Zinc displaces copper from copper sulfate solution just as iron does — the same reaction that powers the classic Daniell cell, one of the earliest practical batteries.",
+    gasName:"none", colorNote:"blue solution fades as copper deposits on the zinc", precipitateName:"reddish copper metal deposits", soundNote:"silent",
+    chemIds:["el_zn","copper_sulf"] },
+  { cls:12, chapter:"The p-Block Elements", title:"Preparation of bleaching powder", equation:"Cl₂ + Ca(OH)₂ → CaOCl₂ (bleaching powder)",
+    desc:"Chlorine gas passed over slaked lime (calcium hydroxide) forms calcium oxychloride — bleaching powder — used for water disinfection and as a bleaching/oxidising agent.",
+    gasName:"chlorine is absorbed, not released, once reacted", colorNote:"white slaked lime stays whitish, gains a faint chlorine smell", precipitateName:"none (solid-gas reaction)", soundNote:"silent",
+    chemIds:["el_cl","el_ca"] }
+];
+
+// Register the coordination-compound reaction if ammonia/copper_sulf pair isn't already defined
+if(!REACTIONS[pairKey("copper_sulf","ammonia")]){
+  add("copper_sulf","ammonia", {
+    title:"Deep blue complex forms",
+    desc:"A little ammonia first forms a pale blue precipitate of copper hydroxide; adding more ammonia redissolves it into a deep, inky royal-blue coordination complex, [Cu(NH₃)₄]²⁺.",
+    effect:"colorchange", color:"#2a4f9e",
+    colorNote:"pale blue → pale precipitate → deep royal blue", precipitateName:"pale blue precipitate that redissolves in excess ammonia"
+  ,
+  equation:"[Cu(H₂O)₆]²⁺ + 4NH₃ → [Cu(NH₃)₄]²⁺ + 6H₂O"
+});
+}
+if(!REACTIONS[pairKey("el_zn","copper_sulf")]){
+  add("el_zn","copper_sulf", {
+    title:"Zinc displaces copper",
+    desc:"Zinc is more reactive than copper, so it displaces copper from solution, coating itself in reddish copper while the blue colour of the solution fades — the reaction behind the Daniell cell.",
+    effect:"colorchange", color:"#a9c7a3",
+    colorNote:"blue → pale, colourless-ish; reddish coating appears", precipitateName:"copper metal deposits on the zinc"
+  ,
+  equation:"Zn + CuSO₄ → ZnSO₄ + Cu"
+});
+}
+if(!REACTIONS[pairKey("el_cl","el_ca")]){
+  add("el_cl","el_ca", {
+    title:"Forms a bleaching compound",
+    desc:"Chlorine reacts with calcium (as its hydroxide, in real bleaching-powder manufacture) to lock into a stable compound used as bleaching powder in water treatment.",
+    effect:"colorchange", color:"#eef0ea",
+    colorNote:"pale, chalky white, faint chlorine smell", gasName:"none once fully reacted"
+  ,
+  equation:"Cl₂ + Ca(OH)₂ → CaOCl₂ + H₂O (using slaked lime)"
+});
+}
+
+/* ---------------- High-school reagent reactions ---------------- */
+add("el_zn","hcl", {
+  title:"Bubbles vigorously",
+  desc:"Zinc reacts with dilute hydrochloric acid, releasing a steady stream of hydrogen gas bubbles — a classic school demonstration of a metal-acid reaction.",
+  effect:"fizz", color:"#eef2e6",
+  gasName:"hydrogen", soundNote:"steady, lively fizzing",
+  equation:"Zn + 2HCl → ZnCl₂ + H₂↑"
+});
+add("el_mg","hcl", {
+  title:"Fizzes rapidly",
+  desc:"Magnesium reacts quickly with dilute hydrochloric acid, fizzing energetically as hydrogen gas escapes — noticeably faster than zinc does with the same acid.",
+  effect:"fizz", color:"#eef2e6",
+  gasName:"hydrogen", soundNote:"a lively, rushing fizz",
+  equation:"Mg + 2HCl → MgCl₂ + H₂↑"
+});
+add("el_fe","h2so4", {
+  title:"Steady fizzing",
+  desc:"Iron reacts with dilute sulfuric acid at a moderate pace, releasing hydrogen gas and slowly turning the solution pale green as iron(II) sulfate forms.",
+  effect:"fizz-small", color:"#dfe6cf",
+  gasName:"hydrogen", colorNote:"colourless → pale green", soundNote:"gentle, steady fizzing",
+  equation:"Fe + H₂SO₄ → FeSO₄ + H₂↑"
+});
+add("naoh","phenolphthalein", {
+  title:"Turns bright pink",
+  desc:"Phenolphthalein is colourless in acid or neutral solution but turns a vivid pink in the presence of a base like sodium hydroxide — one of the most iconic indicator tests in the lab.",
+  effect:"colorchange", color:"#e878b0",
+  colorNote:"colourless → bright pink",
+  equation:"no fixed formula — indicator colour shift"
+});
+add("hcl","phenolphthalein", {
+  title:"Stays colourless",
+  desc:"Phenolphthalein remains colourless in acidic solution — it only turns pink once the solution becomes basic, which is exactly why it's used to spot the endpoint in acid-base titrations.",
+  effect:"dissolve", color:"#eef2e0",
+  colorNote:"stays colourless",
+  equation:"no fixed formula — indicator stays colourless in acid"
+});
+add("hcl","universal_indicator", {
+  title:"Turns red",
+  desc:"Universal indicator turns red in a strongly acidic solution such as dilute hydrochloric acid, at the low end of the 0–14 pH scale.",
+  effect:"colorchange", color:"#c9453f",
+  colorNote:"green/orange → red",
+  equation:"no fixed formula — indicator colour shift"
+});
+add("naoh","universal_indicator", {
+  title:"Turns deep purple-blue",
+  desc:"Universal indicator turns a deep blue-purple in a strongly basic solution such as sodium hydroxide, at the high end of the pH scale.",
+  effect:"colorchange", color:"#5a4fae",
+  colorNote:"green/orange → deep blue-purple",
+  equation:"no fixed formula — indicator colour shift"
+});
+add("vinegar","universal_indicator", {
+  title:"Turns orange-red",
+  desc:"Universal indicator turns orange-red in a mild acid like vinegar — less intense than the red seen with a strong acid.",
+  effect:"colorchange", color:"#d9793d",
+  colorNote:"green → orange-red",
+  equation:"no fixed formula — indicator colour shift"
+});
+add("hcl","litmus", {
+  title:"Turns red",
+  desc:"Blue litmus solution turns red in the presence of an acid — one of the oldest and simplest acid tests in chemistry.",
+  effect:"colorchange", color:"#c9534f",
+  colorNote:"blue/purple → red",
+  equation:"no fixed formula — indicator colour shift"
+});
+add("naoh","litmus", {
+  title:"Stays / turns blue",
+  desc:"Litmus stays or turns blue in the presence of a base like sodium hydroxide — the classic partner test to the acid version.",
+  effect:"dissolve", color:"#5a5fae",
+  colorNote:"stays or turns blue",
+  equation:"no fixed formula — indicator colour shift"
+});
+add("limewater","dry_ice", {
+  title:"Turns milky",
+  desc:"Carbon dioxide gas turns limewater cloudy and milky as it forms a fine white precipitate of calcium carbonate — the standard school test used to confirm CO₂.",
+  effect:"precipitate", color:"#eef0ea",
+  precipitateName:"fine white calcium carbonate suspension", gasName:"carbon dioxide is absorbed, none escapes",
+  equation:"Ca(OH)₂ + CO₂ → CaCO₃↓ + H₂O"
+});
+add("limewater","baking_soda", {
+  title:"Turns faintly cloudy",
+  desc:"Limewater reacts gently with the carbonate in baking soda, producing a faint cloudiness as a little calcium carbonate forms.",
+  effect:"precipitate", color:"#eef0ea",
+  precipitateName:"a light, fine white cloudiness",
+  equation:"Ca(OH)₂ + Na₂CO₃-like carbonate → CaCO₃↓ (simplified)"
+});
+add("kmno4","peroxide", {
+  title:"Decolourises and fizzes",
+  desc:"Hydrogen peroxide reduces the deep purple permanganate ion to a pale, almost colourless solution while releasing a burst of oxygen gas — a vivid redox demonstration.",
+  effect:"colorchange-fizz", color:"#dfe6d0",
+  colorNote:"deep purple → pale/colourless", gasName:"oxygen", soundNote:"a lively fizz",
+  equation:"2KMnO₄ + 5H₂O₂ + 6H⁺ → 2Mn²⁺ + 5O₂↑ + 8H₂O + 2K⁺"
+});
+add("kmno4","water", {
+  title:"Diffuses into a purple haze",
+  desc:"Potassium permanganate dissolves and streams through the water in swirling purple threads before settling into an even violet solution.",
+  effect:"swirl", color:"#7a3a7e",
+  colorNote:"colourless → deep purple, swirling",
+  equation:"KMnO₄(s) → K⁺(aq) + MnO₄⁻(aq) (dissolution)"
+});
+add("silver_nitrate","salt", {
+  title:"White precipitate forms instantly",
+  desc:"Silver nitrate reacts with chloride ions to instantly form a curdy white precipitate of silver chloride — the classic qualitative test for chloride ions, and a reaction so fast it's used to spot-check tap water purity.",
+  effect:"precipitate", color:"#eef0f2",
+  precipitateName:"curdy white silver chloride, darkens slightly in light",
+  equation:"AgNO₃ + NaCl → AgCl↓ + NaNO₃"
+});
+add("sodium_carbonate","hcl", {
+  title:"Fizzes with gas",
+  desc:"Sodium carbonate reacts briskly with dilute hydrochloric acid, releasing a steady stream of carbon dioxide gas.",
+  effect:"fizz", color:"#eef0e0",
+  gasName:"carbon dioxide", soundNote:"a brisk, steady fizz",
+  equation:"Na₂CO₃ + 2HCl → 2NaCl + H₂O + CO₂↑"
+});
+add("ferrous_sulfate","naoh", {
+  title:"Dirty green precipitate forms",
+  desc:"Sodium hydroxide precipitates iron(II) hydroxide out of ferrous sulfate solution as a dirty green, gelatinous solid that slowly darkens on exposure to air.",
+  effect:"precipitate", color:"#8a9a6a",
+  precipitateName:"dirty green iron(II) hydroxide, darkens over time",
+  equation:"FeSO₄ + 2NaOH → Fe(OH)₂↓ + Na₂SO₄"
+});
+add("ammonium_chloride","naoh", {
+  title:"Releases a sharp gas on warming",
+  desc:"Ammonium chloride reacts with sodium hydroxide (especially when gently warmed) to release pungent ammonia gas — a standard test for ammonium ions, usually confirmed with damp red litmus paper turning blue.",
+  effect:"fog", color:"#eef0ea",
+  gasName:"ammonia (sharp, pungent smell)", soundNote:"silent, but the smell is unmistakable",
+  equation:"NH₄Cl + NaOH → NaCl + H₂O + NH₃↑"
+});
+add("hcl","naoh", {
+  title:"Neutralises, releasing heat",
+  desc:"A textbook strong acid–strong base neutralisation: the two react completely to form ordinary salt water, releasing a noticeable amount of heat as they do.",
+  effect:"dissolve", color:"#eef0ea",
+  colorNote:"both colourless, stays colourless", soundNote:"silent, but the mixture warms",
+  equation:"HCl + NaOH → NaCl + H₂O"
+});
+
+/* ---------------- Classic NCERT test reactions ---------------- */
+add("tollens_reagent","formaldehyde", {
+  title:"Silver mirror forms",
+  desc:"Formaldehyde reduces the silver ions in Tollens' reagent, depositing a bright, shiny layer of metallic silver on the inside of the vessel — the classic silver mirror test for aldehydes.",
+  effect:"precipitate", color:"#d8dadd",
+  precipitateName:"a shiny silver mirror coats the glass", gasName:"none",
+  equation:"HCHO + 2[Ag(NH₃)₂]⁺ + 3OH⁻ → HCOO⁻ + 2Ag↓ + 4NH₃ + 2H₂O"
+});
+add("tollens_reagent","acetaldehyde", {
+  title:"Silver mirror forms",
+  desc:"Acetaldehyde reduces the silver-ammonia complex, depositing a bright metallic silver layer — the same silver mirror test, confirming the aldehyde group.",
+  effect:"precipitate", color:"#d8dadd",
+  precipitateName:"a shiny silver mirror coats the glass",
+  equation:"CH₃CHO + 2[Ag(NH₃)₂]⁺ + 3OH⁻ → CH₃COO⁻ + 2Ag↓ + 4NH₃ + 2H₂O"
+});
+add("fehlings_solution","glucose", {
+  title:"Brick-red precipitate forms",
+  desc:"Glucose, a reducing sugar, reduces the deep blue copper(II) complex in Fehling's solution to a brick-red precipitate of copper(I) oxide on heating — a standard test for reducing sugars.",
+  effect:"precipitate", color:"#b5502e",
+  colorNote:"deep blue → brick-red", precipitateName:"brick-red copper(I) oxide",
+  equation:"glucose + 2Cu²⁺ + 5OH⁻ → gluconate + Cu₂O↓ (brick-red) + 3H₂O"
+});
+add("benedicts_solution","glucose", {
+  title:"Brick-red precipitate forms",
+  desc:"Glucose reduces the copper(II) ions in Benedict's solution to a brick-red precipitate on heating — a gentler alternative to Fehling's test, often used to test for sugar in urine.",
+  effect:"precipitate", color:"#b5502e",
+  colorNote:"blue → green → yellow → brick-red as more sugar reacts", precipitateName:"brick-red copper(I) oxide",
+  equation:"glucose + 2Cu²⁺ (Benedict's) → Cu₂O↓ (brick-red) + oxidised sugar"
+});
+add("dnp_reagent","acetone", {
+  title:"Yellow-orange precipitate forms",
+  desc:"2,4-DNP reacts with the carbonyl group in acetone to form a yellow-orange crystalline precipitate — a general test confirming the presence of an aldehyde or ketone.",
+  effect:"precipitate", color:"#e0a03d",
+  precipitateName:"yellow-orange 2,4-DNP hydrazone crystals",
+  equation:"CH₃COCH₃ + 2,4-DNP → hydrazone precipitate + H₂O"
+});
+add("dnp_reagent","formaldehyde", {
+  title:"Yellow-orange precipitate forms",
+  desc:"2,4-DNP reacts with formaldehyde's carbonyl group to give a yellow-orange precipitate, confirming the aldehyde functional group.",
+  effect:"precipitate", color:"#e0a03d",
+  precipitateName:"yellow-orange 2,4-DNP hydrazone crystals",
+  equation:"HCHO + 2,4-DNP → hydrazone precipitate + H₂O"
+});
+add("schiffs_reagent","formaldehyde", {
+  title:"Turns bright pink/magenta",
+  desc:"Schiff's reagent, decolourised fuchsin dye, turns a vivid pink-magenta in the presence of an aldehyde — a sensitive and specific test for the aldehyde group.",
+  effect:"colorchange", color:"#d94f8a",
+  colorNote:"colourless/pale → bright pink-magenta",
+  equation:"no fixed formula — dye regains colour on reaction with –CHO"
+});
+add("schiffs_reagent","acetaldehyde", {
+  title:"Turns bright pink/magenta",
+  desc:"Acetaldehyde restores colour to Schiff's reagent, turning the solution pink-magenta and confirming the aldehyde group.",
+  effect:"colorchange", color:"#d94f8a",
+  colorNote:"colourless/pale → bright pink-magenta",
+  equation:"no fixed formula — dye regains colour on reaction with –CHO"
+});
+add("ferric_chloride","phenol", {
+  title:"Turns violet",
+  desc:"Ferric chloride reacts with phenol's hydroxyl group to form a distinctive violet-coloured complex — a classic qualitative test for phenols.",
+  effect:"colorchange", color:"#6a4a8a",
+  colorNote:"pale yellow-brown → violet",
+  equation:"6C₆H₅OH + FeCl₃ → [Fe(OC₆H₅)₆]³⁻ complex (violet) + 3HCl"
+});
+add("potassium_dichromate","ethanol", {
+  title:"Turns from orange to green",
+  desc:"Acidified potassium dichromate oxidises ethanol, and as it does the solution changes from orange to green as chromium(VI) is reduced to chromium(III) — the chemistry behind old breathalyser tests.",
+  effect:"colorchange", color:"#5a7a4a",
+  colorNote:"orange → green", gasName:"none, forms acetaldehyde/acetic acid",
+  equation:"3C₂H₅OH + 2K₂Cr₂O₇ + 8H₂SO₄ → 3CH₃COOH + 2Cr₂(SO₄)₃ + 2K₂SO₄ + 11H₂O"
+});
+add("potassium_dichromate","acetaldehyde", {
+  title:"Turns from orange to green",
+  desc:"Potassium dichromate oxidises the aldehyde further to a carboxylic acid, turning from orange to green as the chromium is reduced.",
+  effect:"colorchange", color:"#5a7a4a",
+  colorNote:"orange → green",
+  equation:"3CH₃CHO + K₂Cr₂O₇ + 4H₂SO₄ → 3CH₃COOH + Cr₂(SO₄)₃ + K₂SO₄ + 4H₂O"
+});
+add("lead_nitrate","potassium_iodide", {
+  title:"Golden rain — bright yellow precipitate",
+  desc:"Lead nitrate and potassium iodide instantly form a brilliant yellow precipitate of lead iodide — famous as the 'golden rain' demonstration when the hot solution is left to cool and recrystallise.",
+  effect:"precipitate", color:"#e6c93d",
+  precipitateName:"brilliant yellow lead iodide crystals",
+  equation:"Pb(NO₃)₂ + 2KI → PbI₂↓ + 2KNO₃"
+});
+add("barium_chloride","sodium_sulfate", {
+  title:"White precipitate forms",
+  desc:"Barium chloride reacts instantly with sodium sulfate to form a dense white precipitate of barium sulfate — the reaction NCERT uses to demonstrate the law of conservation of mass.",
+  effect:"precipitate", color:"#eef0ea",
+  precipitateName:"dense white barium sulfate",
+  equation:"BaCl₂ + Na₂SO₄ → BaSO₄↓ + 2NaCl"
+});
+add("silver_nitrate","potassium_iodide", {
+  title:"Yellow precipitate forms",
+  desc:"Silver nitrate reacts with potassium iodide to instantly form a pale yellow precipitate of silver iodide.",
+  effect:"precipitate", color:"#f0e6a0",
+  precipitateName:"pale yellow silver iodide",
+  equation:"AgNO₃ + KI → AgI↓ + KNO₃"
+});
+add("kmno4","oxalic_acid", {
+  title:"Decolourises slowly",
+  desc:"Oxalic acid slowly decolourises acidified potassium permanganate as it's oxidised to carbon dioxide, while the manganese is reduced — a reaction often used in redox titrations.",
+  effect:"colorchange-fizz", color:"#e6ecda",
+  colorNote:"deep purple → colourless", gasName:"carbon dioxide",
+  equation:"2KMnO₄ + 5(COOH)₂ + 3H₂SO₄ → K₂SO₄ + 2MnSO₄ + 10CO₂↑ + 8H₂O"
+});
+add("quicklime","water", {
+  title:"Fizzles and heats up sharply",
+  desc:"Quicklime reacts vigorously with water in a strongly exothermic 'slaking' reaction, hissing and releasing a lot of heat as it turns into slaked lime — the reaction historically used to whitewash walls.",
+  effect:"fizz-small", color:"#f2f2ea",
+  gasName:"none, just steam from the heat", soundNote:"a sharp hiss and crackle as it heats rapidly",
+  equation:"CaO + H₂O → Ca(OH)₂ (+ heat)"
+});
+
+
+function renderNcertTabs(){
+  const classes = ["all",9,10,11,12];
+  ncertTabs.innerHTML = "";
+  classes.forEach(c=>{
+    const chip = document.createElement("div");
+    chip.className = "tab-chip" + (ncertFilter===c ? " active" : "");
+    chip.textContent = c==="all" ? "All classes" : `Class ${c}`;
+    chip.addEventListener("click", ()=>{ ncertFilter = c; renderNcertTabs(); renderNcertList(); });
+    ncertTabs.appendChild(chip);
+  });
+}
+function tryNcertReaction(chemIds){
+  if(!chemIds || chemIds.length < 2) return;
+  selected = chemIds.slice(0,4);
+  selected.forEach(id => { if(quantities[id]===undefined) quantities[id] = 25; });
+  updateShelfHighlight();
+  renderSlots();
+  const bench = document.getElementById("mixBtn");
+  bench.scrollIntoView({ behavior:"smooth", block:"center" });
+  showToast("Loaded into the beaker — hit Mix it!");
+}
+function renderNcertList(){
+  const filtered = NCERT_REACTIONS.filter(r => ncertFilter==="all" || r.cls===ncertFilter);
+  ncertCount.textContent = `${filtered.length} reactions`;
+  ncertList.innerHTML = filtered.map(r=>{
+    const detailChips = [
+      {icon:"💨", label:"Gas released", value:r.gasName || "none observed"},
+      {icon:"🎨", label:"Colour change", value:r.colorNote || "minimal or none"},
+      {icon:"⬇️", label:"Precipitate", value:r.precipitateName || "none forms"},
+      {icon:"🔊", label:"Sound", value:r.soundNote || "silent"}
+    ].map(d => `<div class="detail-chip">${d.icon} <span>${d.label}:</span> <b>${d.value}</b></div>`).join("");
+    const canTry = r.chemIds && r.chemIds.length >= 2 && r.chemIds.every(id => CHEM[id]);
+    return `
+      <div class="ncert-card${r.danger ? '' : ''}">
+        <div class="meta-row">
+          <span class="ncert-class-badge">Class ${r.cls}</span>
+          <span>${r.chapter}</span>
+        </div>
+        <h4>${r.title}</h4>
+        <div class="ncert-equation">${r.equation}</div>
+        <p>${r.desc}</p>
+        <div class="detail-grid">${detailChips}</div>
+        <button class="try-btn" data-ids='${JSON.stringify(r.chemIds||[])}' ${canTry ? "" : "disabled"}>
+          ${canTry ? "🧪 Try in beaker" : "not simulated here"}
+        </button>
+      </div>`;
+  }).join("");
+  ncertList.querySelectorAll(".try-btn").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const ids = JSON.parse(btn.dataset.ids);
+      tryNcertReaction(ids);
+    });
+  });
+}
+
+/* ---------------- Know Element section ---------------- */
+const knowSelect = document.getElementById("knowSelect");
+const knowCard = document.getElementById("knowCard");
+
+const ELEMENT_FACTS = {
+  el_h: "The lightest and most abundant element in the universe, hydrogen fuels stars through nuclear fusion and forms water when it burns in oxygen.",
+  el_he: "A noble gas so unreactive it was first discovered in the Sun's spectrum before being found on Earth; used in balloons and as a coolant for MRI magnets.",
+  el_li: "The lightest metal, used in rechargeable batteries; reacts gently with water compared to its heavier alkali-metal cousins.",
+  el_c: "The backbone of all known life, carbon forms more compounds than any other element and exists as graphite, diamond, and graphene.",
+  el_n: "Makes up about 78% of Earth's atmosphere; essential for proteins and DNA, and famously unreactive as a gas at room temperature.",
+  el_o: "Makes up about 21% of the air we breathe and is essential for combustion and respiration; highly reactive with most other elements.",
+  el_ne: "A noble gas best known for glowing orange-red in the electric discharge tubes that give neon signs their name.",
+  el_na: "A soft, silvery alkali metal that reacts violently with water; combines with chlorine to form ordinary table salt.",
+  el_mg: "A lightweight structural metal that burns with a dazzling white light — used in fireworks, flares, and flash photography.",
+  el_al: "The most abundant metal in Earth's crust; light, corrosion-resistant, and widely used in aircraft, cans, and foil.",
+  el_si: "A metalloid that forms the basis of most computer chips and is the second most abundant element in Earth's crust after oxygen.",
+  el_p: "Essential to DNA and bone; white phosphorus is so reactive it glows faintly in the dark and can ignite in air.",
+  el_s: "A yellow, brittle solid known for its distinctive smell in compounds; used to vulcanise rubber and make sulfuric acid.",
+  el_cl: "A pale green, toxic gas used to disinfect drinking water and swimming pools, and to make table salt when combined with sodium.",
+  el_ar: "The third most abundant gas in Earth's atmosphere, prized for being almost completely inert — used to protect welds and light bulb filaments.",
+  el_k: "An alkali metal even more reactive than sodium; essential for nerve function in the human body.",
+  el_ca: "Gives bones and teeth their strength; reacts steadily with water and burns with a brick-red flame.",
+  el_fe: "The most widely used metal on Earth, central to steel production; reacts slowly with oxygen and moisture to form rust.",
+  el_cu: "A reddish, highly conductive metal used in electrical wiring; slowly forms a green patina (verdigris) when exposed to air.",
+  el_zn: "A bluish-white metal used to galvanise steel against rust, and a key ingredient in brass alongside copper.",
+  el_ag: "A lustrous, highly conductive precious metal, long prized for jewellery and coinage, and historically used in photography.",
+  el_sn: "A soft, malleable metal used since antiquity to make bronze when alloyed with copper; resistant to corrosion.",
+  el_i: "A dark, lustrous solid that sublimes directly into a violet vapour; essential in trace amounts for thyroid function.",
+  el_au: "A dense, soft, corrosion-resistant metal prized throughout history for currency and jewellery; barely reacts with anything.",
+  el_hg: "The only metal that's liquid at room temperature; once common in thermometers, now used more cautiously due to its toxicity.",
+  el_pb: "A dense, soft, bluish-grey metal historically used in pipes and paints; now heavily restricted due to its toxicity.",
+  el_u: "A dense, silvery radioactive metal that powers nuclear reactors; its isotope U-235 is capable of sustaining a chain reaction.",
+  el_pt: "One of the rarest and most corrosion-resistant metals, prized in jewellery and as a catalyst in catalytic converters.",
+  el_br: "One of only two elements liquid at room temperature; a reddish-brown, corrosive halogen with a sharp odour."
+};
+function elementBlurb(id){
+  if(ELEMENT_FACTS[id]) return ELEMENT_FACTS[id];
+  const c = CHEM[id];
+  const catLabel = c.cat.replace(/-/g," ");
+  const phase = c.tags.includes("gas") ? "gas" : c.tags.includes("liquid") ? "liquid" : "solid";
+  return `${c.name} (${c.symbol}) is element number ${c.num}, classified as a ${catLabel}. At room temperature it's typically found as a ${phase}.`;
+}
+function populateKnowSelect(){
+  const groups = {};
+  ELEMENT_IDS.forEach(id=>{
+    const cat = CHEM[id].cat;
+    (groups[cat] = groups[cat] || []).push(id);
+  });
+  Object.keys(groups).sort().forEach(cat=>{
+    const optgroup = document.createElement("optgroup");
+    optgroup.label = cat.replace(/-/g," ");
+    groups[cat].sort((a,b)=> CHEM[a].num - CHEM[b].num).forEach(id=>{
+      const opt = document.createElement("option");
+      opt.value = id;
+      opt.textContent = `${CHEM[id].num}. ${CHEM[id].name} (${CHEM[id].symbol})`;
+      optgroup.appendChild(opt);
+    });
+    knowSelect.appendChild(optgroup);
+  });
+}
+function renderKnowCard(id){
+  if(!id){
+    knowCard.innerHTML = `<div class="know-placeholder">Pick any of the 118 elements to see its symbol, atomic number, category, state, and a quick summary — plus a button to drop it straight into the beaker.</div>`;
+    return;
+  }
+  const c = CHEM[id];
+  const phase = c.tags.includes("gas") ? "Gas" : c.tags.includes("liquid") ? "Liquid" : "Solid";
+  const reactivity = c.tags.includes("reactive-metal") ? "Highly reactive" : c.tags.includes("inert") ? "Inert / unreactive" : c.tags.includes("metal") ? "Moderately reactive" : "Reactive (varies)";
+  knowCard.innerHTML = `
+    <div class="element-card">
+      <div class="big-symbol" style="background:${c.color}22; border-color:${c.color};">${c.symbol}</div>
+      <h3>${c.name}</h3>
+      <div class="el-sub">Atomic number ${c.num} · ${c.cat.replace(/-/g," ")}</div>
+      <div class="el-props">
+        <div class="el-prop"><span>State at room temp</span>${phase}</div>
+        <div class="el-prop"><span>Reactivity</span>${reactivity}</div>
+        <div class="el-prop"><span>Category</span>${c.cat.replace(/-/g," ")}</div>
+        <div class="el-prop"><span>Symbol</span>${c.symbol}</div>
+      </div>
+      <p class="el-blurb">${elementBlurb(id)}</p>
+      <button class="try-btn" id="addElBtn">＋ Add to beaker</button>
+    </div>
+  `;
+  document.getElementById("addElBtn").addEventListener("click", ()=>{
+    if(!selected.includes(id)){
+      if(selected.length >= 4) selected.shift();
+      selected.push(id);
+      if(quantities[id]===undefined) quantities[id] = 25;
+    }
+    updateShelfHighlight();
+    renderSlots();
+    document.getElementById("mixBtn").scrollIntoView({ behavior:"smooth", block:"center" });
+    showToast(`${c.name} added to the beaker`);
+  });
+}
+knowSelect.addEventListener("change", ()=> renderKnowCard(knowSelect.value));
+
+/* ---------------- Experiment Bench (drag & drop equipment) ---------------- */
+const INK = "#1f2d3d";
+const EQUIPMENT = {
+  beaker: { name:"Beaker", kind:"vessel", icon:`<svg viewBox="0 0 40 40"><path d="M14 6 L14 16 L7 34 Q6 37 10 37 L30 37 Q34 37 33 34 L26 16 L26 6" fill="none" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/><line x1="12" y1="5" x2="28" y2="5" stroke="${INK}" stroke-width="2" stroke-linecap="round"/></svg>` },
+  flask: { name:"Conical Flask", kind:"vessel", icon:`<svg viewBox="0 0 40 40"><path d="M17 6 L17 18 L8 34 Q6 37 10 37 L30 37 Q34 37 32 34 L23 18 L23 6" fill="none" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/><line x1="15" y1="5" x2="25" y2="5" stroke="${INK}" stroke-width="2" stroke-linecap="round"/></svg>` },
+  tube: { name:"Test Tube", kind:"vessel", icon:`<svg viewBox="0 0 40 40"><path d="M14 4 L14 29 Q14 37 20 37 Q26 37 26 29 L26 4" fill="none" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/><line x1="12" y1="3" x2="28" y2="3" stroke="${INK}" stroke-width="2" stroke-linecap="round"/></svg>` },
+  burner: { name:"Bunsen Burner", kind:"heat", icon:`<svg viewBox="0 0 40 40"><g class="flame"><path d="M20 4 Q24 10 20 15 Q16 11 20 4 Z" fill="#f2a23d" stroke="#e0973a" stroke-width="1"/></g><rect x="17" y="14" width="6" height="14" rx="1" fill="none" stroke="${INK}" stroke-width="2"/><path d="M11 36 L29 36 L24 28 L16 28 Z" fill="none" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/></svg>` },
+  tripod: { name:"Tripod Stand", kind:"support", icon:`<svg viewBox="0 0 40 40"><line x1="8" y1="36" x2="20" y2="12" stroke="${INK}" stroke-width="2" stroke-linecap="round"/><line x1="32" y1="36" x2="20" y2="12" stroke="${INK}" stroke-width="2" stroke-linecap="round"/><line x1="20" y1="37" x2="20" y2="12" stroke="${INK}" stroke-width="2" stroke-linecap="round"/><ellipse cx="20" cy="12" rx="11" ry="3" fill="none" stroke="${INK}" stroke-width="2"/></svg>` },
+  gauze: { name:"Wire Gauze", kind:"support", icon:`<svg viewBox="0 0 40 40"><rect x="7" y="16" width="26" height="9" fill="none" stroke="${INK}" stroke-width="2"/><line x1="14" y1="16" x2="14" y2="25" stroke="${INK}" stroke-width="1"/><line x1="20" y1="16" x2="20" y2="25" stroke="${INK}" stroke-width="1"/><line x1="26" y1="16" x2="26" y2="25" stroke="${INK}" stroke-width="1"/></svg>` },
+  rod: { name:"Glass Rod", kind:"tool", icon:`<svg viewBox="0 0 40 40"><line x1="20" y1="5" x2="20" y2="35" stroke="${INK}" stroke-width="3" stroke-linecap="round"/><circle cx="20" cy="5" r="2.2" fill="${INK}"/><circle cx="20" cy="35" r="2.2" fill="${INK}"/></svg>` },
+  clamp: { name:"Retort Stand & Clamp", kind:"support", icon:`<svg viewBox="0 0 40 40"><line x1="10" y1="3" x2="10" y2="37" stroke="${INK}" stroke-width="2" stroke-linecap="round"/><line x1="10" y1="14" x2="26" y2="14" stroke="${INK}" stroke-width="2" stroke-linecap="round"/><path d="M22 10 L30 10 L30 18 L22 18" fill="none" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/></svg>` },
+  thermo: { name:"Thermometer", kind:"measure", icon:`<svg viewBox="0 0 40 40"><rect x="17.5" y="4" width="5" height="24" rx="2.5" fill="none" stroke="${INK}" stroke-width="1.6"/><circle cx="20" cy="32" r="5.5" fill="#d9534f" stroke="${INK}" stroke-width="1.6"/><line x1="20" y1="10" x2="20" y2="28" stroke="#d9534f" stroke-width="2.4"/></svg>` },
+  dropper: { name:"Dropper", kind:"measure", icon:`<svg viewBox="0 0 40 40"><ellipse cx="20" cy="10" rx="6.5" ry="7" fill="none" stroke="${INK}" stroke-width="2"/><line x1="20" y1="17" x2="20" y2="34" stroke="${INK}" stroke-width="2" stroke-linecap="round"/></svg>` },
+  funnel: { name:"Funnel", kind:"other", icon:`<svg viewBox="0 0 40 40"><path d="M7 8 L33 8 L22 24 L22 34 L18 34 L18 24 Z" fill="none" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/></svg>` },
+  spatula: { name:"Spatula", kind:"other", icon:`<svg viewBox="0 0 40 40"><line x1="12" y1="34" x2="26" y2="12" stroke="${INK}" stroke-width="3" stroke-linecap="round"/><path d="M23 6 L31 6 L31 13 L23 13 Z" fill="none" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/></svg>` },
+  watchglass: { name:"Watch Glass", kind:"other", icon:`<svg viewBox="0 0 40 40"><path d="M6 20 Q20 30 34 20" fill="none" stroke="${INK}" stroke-width="2"/><path d="M6 20 Q20 12 34 20" fill="none" stroke="${INK}" stroke-width="2"/></svg>` },
+  goggles: { name:"Safety Goggles", kind:"other", icon:`<svg viewBox="0 0 40 40"><circle cx="13" cy="20" r="8" fill="none" stroke="${INK}" stroke-width="2"/><circle cx="27" cy="20" r="8" fill="none" stroke="${INK}" stroke-width="2"/><line x1="21" y1="20" x2="19" y2="20" stroke="${INK}" stroke-width="2"/></svg>` },
+  microscope: { name:"Microscope", kind:"observe", icon:`<svg viewBox="0 0 40 40"><line x1="24" y1="4" x2="24" y2="13" stroke="${INK}" stroke-width="3" stroke-linecap="round"/><path d="M24 13 L14 27" stroke="${INK}" stroke-width="3" stroke-linecap="round" fill="none"/><circle cx="14" cy="27" r="3.4" fill="none" stroke="${INK}" stroke-width="2"/><rect x="7" y="31" width="26" height="4" rx="1.5" fill="none" stroke="${INK}" stroke-width="2"/><line x1="20" y1="31" x2="20" y2="27" stroke="${INK}" stroke-width="2"/></svg>` },
+  pipette: { name:"Graduated Pipette", kind:"measure", icon:`<svg viewBox="0 0 40 40"><ellipse cx="20" cy="7" rx="5" ry="6" fill="none" stroke="${INK}" stroke-width="2"/><line x1="20" y1="13" x2="20" y2="35" stroke="${INK}" stroke-width="2"/><line x1="16" y1="18" x2="20" y2="18" stroke="${INK}" stroke-width="1.4"/><line x1="16" y1="24" x2="20" y2="24" stroke="${INK}" stroke-width="1.4"/><line x1="16" y1="30" x2="20" y2="30" stroke="${INK}" stroke-width="1.4"/></svg>` },
+  forceps: { name:"Forceps", kind:"other", icon:`<svg viewBox="0 0 40 40"><path d="M14 6 L20 30" stroke="${INK}" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M26 6 L20 30" stroke="${INK}" stroke-width="2.4" fill="none" stroke-linecap="round"/><line x1="16" y1="10" x2="24" y2="10" stroke="${INK}" stroke-width="2"/></svg>` },
+  crucible: { name:"Crucible", kind:"other", icon:`<svg viewBox="0 0 40 40"><path d="M12 14 L14 32 Q20 36 26 32 L28 14" fill="none" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/><line x1="10" y1="14" x2="30" y2="14" stroke="${INK}" stroke-width="2" stroke-linecap="round"/></svg>` },
+  evap_dish: { name:"Evaporating Dish", kind:"other", icon:`<svg viewBox="0 0 40 40"><path d="M6 18 Q20 30 34 18" fill="none" stroke="${INK}" stroke-width="2"/><path d="M6 18 Q20 10 34 18" fill="none" stroke="${INK}" stroke-width="2"/><path d="M9 19 Q20 25 31 19" fill="none" stroke="${INK}" stroke-width="1.3"/></svg>` },
+  ph_meter: { name:"pH Meter", kind:"measure", icon:`<svg viewBox="0 0 40 40"><rect x="13" y="4" width="14" height="11" rx="2" fill="none" stroke="${INK}" stroke-width="2"/><text x="20" y="12.5" font-size="7" text-anchor="middle" fill="${INK}" font-family="monospace">pH</text><line x1="20" y1="15" x2="20" y2="33" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/><path d="M17 33 L20 38 L23 33 Z" fill="none" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/></svg>` },
+  litmus_paper: { name:"Litmus Paper", kind:"measure", icon:`<svg viewBox="0 0 40 40"><rect x="16" y="6" width="8" height="28" rx="1.5" fill="none" stroke="${INK}" stroke-width="2"/><rect x="17.2" y="7.2" width="5.6" height="9" fill="#8a5fae"/></svg>` },
+  balance: { name:"Weighing Balance", kind:"measure", icon:`<svg viewBox="0 0 40 40"><line x1="20" y1="6" x2="20" y2="14" stroke="${INK}" stroke-width="2"/><line x1="8" y1="14" x2="32" y2="14" stroke="${INK}" stroke-width="2" stroke-linecap="round"/><path d="M8 14 L4 24 Q12 27 8 14" fill="none" stroke="${INK}" stroke-width="1.6"/><path d="M32 14 L36 24 Q28 27 32 14" fill="none" stroke="${INK}" stroke-width="1.6"/><rect x="12" y="32" width="16" height="4" rx="1" fill="none" stroke="${INK}" stroke-width="2"/><line x1="20" y1="28" x2="20" y2="32" stroke="${INK}" stroke-width="2"/></svg>` },
+  stopwatch: { name:"Stopwatch", kind:"tool", icon:`<svg viewBox="0 0 40 40"><circle cx="20" cy="22" r="14" fill="none" stroke="${INK}" stroke-width="2"/><line x1="20" y1="22" x2="20" y2="12" stroke="${INK}" stroke-width="2" stroke-linecap="round"/><line x1="20" y1="22" x2="26" y2="24" stroke="${INK}" stroke-width="2" stroke-linecap="round"/><line x1="16" y1="4" x2="24" y2="4" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/><line x1="20" y1="4" x2="20" y2="8" stroke="${INK}" stroke-width="2"/></svg>` },
+  mortar: { name:"Mortar & Pestle", kind:"other", icon:`<svg viewBox="0 0 40 40"><path d="M9 18 Q9 32 20 32 Q31 32 31 18" fill="none" stroke="${INK}" stroke-width="2" stroke-linecap="round"/><line x1="26" y1="6" x2="18" y2="24" stroke="${INK}" stroke-width="3" stroke-linecap="round"/></svg>` },
+  wash_bottle: { name:"Wash Bottle", kind:"other", icon:`<svg viewBox="0 0 40 40"><path d="M14 14 L14 34 Q14 37 18 37 L24 37 Q28 37 28 34 L28 14" fill="none" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/><rect x="16" y="6" width="10" height="8" rx="1.5" fill="none" stroke="${INK}" stroke-width="2"/><line x1="26" y1="8" x2="34" y2="4" stroke="${INK}" stroke-width="2" stroke-linecap="round"/></svg>` },
+  gas_jar: { name:"Gas Collection Jar", kind:"other", icon:`<svg viewBox="0 0 40 40"><rect x="11" y="12" width="18" height="24" rx="2" fill="none" stroke="${INK}" stroke-width="2"/><rect x="9" y="8" width="22" height="5" rx="1.5" fill="none" stroke="${INK}" stroke-width="2"/></svg>` }
+};
+
+const VESSEL_SHAPES = {
+  beaker: { outline:"M14 6 L14 16 L7 34 Q6 37 10 37 L30 37 Q34 37 33 34 L26 16 L26 6", bodyTop:16, bodyBottom:37, xRange:[7,33] },
+  flask:  { outline:"M17 6 L17 18 L8 34 Q6 37 10 37 L30 37 Q34 37 32 34 L23 18 L23 6", bodyTop:18, bodyBottom:37, xRange:[8,32] },
+  tube:   { outline:"M14 4 L14 29 Q14 37 20 37 Q26 37 26 29 L26 4", bodyTop:6, bodyBottom:37, xRange:[14,26] }
+};
+function vesselSVG(uid, type, fillColor, fillRatio){
+  const s = VESSEL_SHAPES[type];
+  const h = Math.max((s.bodyBottom - s.bodyTop) * (fillRatio||0), 0);
+  const y = s.bodyBottom - h;
+  return `<svg viewBox="0 0 40 40">
+    <defs><clipPath id="clip-${uid}"><path d="${s.outline}"/></clipPath></defs>
+    <g clip-path="url(#clip-${uid})"><rect x="${s.xRange[0]}" y="${y}" width="${s.xRange[1]-s.xRange[0]}" height="${h}" fill="${fillColor}"/></g>
+    <path d="${s.outline}" fill="none" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/>
+  </svg>`;
+}
+
+const REAGENT_IDS = [
+  "hcl","naoh","h2so4","hno3","koh","litmus","phenolphthalein","universal_indicator","methyl_orange",
+  "limewater","kmno4","potassium_dichromate","ferric_chloride","ferrous_sulfate",
+  "sodium_carbonate","ammonium_chloride","silver_nitrate","barium_chloride","sodium_sulfate",
+  "lead_nitrate","potassium_iodide","zinc_sulfate","borax","boric_acid","bleaching_powder",
+  "quicklime","plaster_of_paris","gypsum","potassium_chlorate","manganese_dioxide",
+  "chloroform","carbon_tetrachloride","methanol","ethanol","glycerol","phenol",
+  "formaldehyde","acetaldehyde","acetone","benzaldehyde","formic_acid","oxalic_acid",
+  "benzoic_acid","aniline","glucose","tollens_reagent","fehlings_solution","benedicts_solution",
+  "dnp_reagent","schiffs_reagent","sodium_thiosulfate","lead_acetate","potassium_ferrocyanide",
+  "ammonium_oxalate","vinegar","baking_soda","copper_sulf","salt","iodine","cornstarch","dry_ice",
+  "el_zn","el_mg","el_fe","el_na","el_cu"
+];
+
+/* ---- Lab Notes narrator: describes what's happening as the user acts ---- */
+const narratorFeed = document.getElementById("narratorFeed");
+let narratorLog = [];
+function narrate(text){
+  const time = new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+  narratorLog.unshift({ time, text });
+  if(narratorLog.length > 40) narratorLog.length = 40;
+  renderNarrator();
+}
+function renderNarrator(){
+  if(!narratorLog.length){
+    narratorFeed.innerHTML = `<p class="narrator-empty">Your actions will be narrated here as you build and run the experiment…</p>`;
+    return;
+  }
+  narratorFeed.innerHTML = narratorLog.map(e => `<p class="narrator-line"><span class="narrator-time">${e.time}</span>${e.text}</p>`).join("");
+}
+
+const equipPalette = document.getElementById("equipPalette");
+const reagentPalette = document.getElementById("reagentPalette");
+const equipCanvas = document.getElementById("equipCanvas");
+const canvasHint = document.getElementById("canvasHint");
+const checklistEl = document.getElementById("checklist");
+const equipCount = document.getElementById("equipCount");
+const resetSetupBtn = document.getElementById("resetSetupBtn");
+
+let placedItems = [];
+let heatInterval = null;
+let setupCompleteShown = false;
+
+function renderEquipPalette(){
+  equipPalette.innerHTML = "";
+  Object.entries(EQUIPMENT).forEach(([id, e])=>{
+    const chip = document.createElement("div");
+    chip.className = "equip-chip";
+    chip.draggable = true;
+    chip.innerHTML = `<div class="equip-icon">${e.icon}</div><span>${e.name}</span>`;
+    chip.addEventListener("dragstart", ev=>{
+      ev.dataTransfer.setData("text/plain", id);
+    });
+    chip.addEventListener("click", ()=>{
+      const rect = equipCanvas.getBoundingClientRect();
+      placeEquipment(id, rect.width/2 + (Math.random()*60-30), rect.height/2 + (Math.random()*60-30));
+    });
+    equipPalette.appendChild(chip);
+  });
+}
+function renderReagentPalette(){
+  reagentPalette.innerHTML = "";
+  REAGENT_IDS.forEach(id=>{
+    if(!CHEM[id]) return;
+    const c = CHEM[id];
+    const chip = document.createElement("div");
+    chip.className = "equip-chip reagent-chip";
+    chip.draggable = true;
+    chip.innerHTML = `<div class="equip-icon"><div class="reagent-swatch" style="background:${c.color};"></div></div><span>${c.name}</span>`;
+    chip.addEventListener("dragstart", ev=>{
+      ev.dataTransfer.setData("text/plain", "reagent:"+id);
+    });
+    chip.addEventListener("click", ()=>{
+      const vessels = placedItems.filter(i=> EQUIPMENT[i.type].kind==="vessel");
+      if(vessels.length){ addReagentToVessel(vessels[vessels.length-1], id); }
+      else { showToast("Place a vessel on the bench first"); }
+    });
+    reagentPalette.appendChild(chip);
+  });
+}
+
+const REAGENT_CARRIERS = ["rod","dropper","pipette"];
+let hoverTargetUid = null;
+
+function findNearestDropTarget(x, y){
+  const DROP_RADIUS = 90;
+  let best = null, bestDist = Infinity;
+  placedItems.forEach(item=>{
+    const isValid = EQUIPMENT[item.type].kind === "vessel" || REAGENT_CARRIERS.includes(item.type);
+    if(!isValid) return;
+    const d = Math.hypot(item.x - x, item.y - y);
+    if(d < DROP_RADIUS && d < bestDist){ bestDist = d; best = item; }
+  });
+  return best;
+}
+function setHoverTarget(uid){
+  if(uid === hoverTargetUid) return;
+  if(hoverTargetUid){
+    const prevEl = equipCanvas.querySelector(`.placed-equip[data-uid="${hoverTargetUid}"]`);
+    if(prevEl) prevEl.classList.remove("drop-hover");
+  }
+  if(uid){
+    const newEl = equipCanvas.querySelector(`.placed-equip[data-uid="${uid}"]`);
+    if(newEl) newEl.classList.add("drop-hover");
+  }
+  hoverTargetUid = uid;
+}
+
+equipCanvas.addEventListener("dragover", ev=>{
+  ev.preventDefault();
+  const rect = equipCanvas.getBoundingClientRect();
+  const x = ev.clientX - rect.left;
+  const y = ev.clientY - rect.top;
+  const target = findNearestDropTarget(x, y);
+  setHoverTarget(target ? target.uid : null);
+});
+equipCanvas.addEventListener("dragleave", ev=>{
+  if(!equipCanvas.contains(ev.relatedTarget)) setHoverTarget(null);
+});
+equipCanvas.addEventListener("drop", ev=>{
+  ev.preventDefault();
+  setHoverTarget(null);
+  const data = ev.dataTransfer.getData("text/plain");
+  if(!data) return;
+  const rect = equipCanvas.getBoundingClientRect();
+  const x = ev.clientX - rect.left;
+  const y = ev.clientY - rect.top;
+
+  if(data.startsWith("reagent:")){
+    const reagentId = data.slice(8);
+    const item = findNearestDropTarget(x, y);
+    if(!item){ showToast("Drop the reagent closer to a vessel, the rod, dropper, or pipette"); return; }
+    if(EQUIPMENT[item.type].kind === "vessel"){
+      addReagentToVessel(item, reagentId);
+    } else if(REAGENT_CARRIERS.includes(item.type)){
+      item.loadedReagent = reagentId;
+      renderEquipCanvas();
+      showToast(`${CHEM[reagentId].name} loaded — click the ${EQUIPMENT[item.type].name.toLowerCase()} to add it to a vessel`);
+    }
+    return;
+  }
+
+  if(!EQUIPMENT[data]) return;
+  placeEquipment(data, x, y);
+});
+
+/* ---- Smart stacking: burner → tripod → gauze → vessel/dish, snaps into place ----
+   Matching is by TYPE, not drop distance — if a compatible support exists anywhere
+   on the bench, the new item locks onto it automatically, like assembling real
+   apparatus rather than needing a pixel-perfect drop. */
+const SNAP_RULES = [
+  { child:"tripod", support:"burner", gap:66 },
+  { child:"gauze", support:"tripod", gap:58 },
+  { child:"beaker", support:"gauze", gap:54 },
+  { child:"flask", support:"gauze", gap:54 },
+  { child:"tube", support:"gauze", gap:50 },
+  { child:"watchglass", support:"gauze", gap:46 },
+  { child:"crucible", support:"gauze", gap:48 },
+  { child:"evap_dish", support:"gauze", gap:46 },
+  { child:"beaker", support:"tripod", gap:58 },
+  { child:"flask", support:"tripod", gap:58 },
+  { child:"tube", support:"tripod", gap:54 },
+  { child:"watchglass", support:"tripod", gap:50 },
+  { child:"crucible", support:"tripod", gap:52 },
+  { child:"evap_dish", support:"tripod", gap:50 }
+];
+
+function findLatestSupportOfType(excludeUid, type){
+  const candidates = placedItems.filter(o => o.uid !== excludeUid && o.type === type);
+  return candidates.length ? candidates[candidates.length-1] : null;
+}
+function trySnapChildToSupport(item){
+  const rules = SNAP_RULES.filter(r=>r.child===item.type);
+  for(const rule of rules){
+    const support = findLatestSupportOfType(item.uid, rule.support);
+    if(support){
+      item.x = support.x;
+      item.y = support.y - rule.gap;
+      return true;
+    }
+  }
+  return false;
+}
+function trySnapExistingOntoNewSupport(newItem){
+  const rules = SNAP_RULES.filter(r=>r.support===newItem.type);
+  if(!rules.length) return false;
+  let snappedAny = false;
+  rules.forEach(rule=>{
+    placedItems.forEach(item=>{
+      if(item.uid===newItem.uid || item.type!==rule.child) return;
+      item.x = newItem.x;
+      item.y = newItem.y - rule.gap;
+      snappedAny = true;
+      trySnapExistingOntoNewSupport(item); // cascade to anything sitting on top of this item too
+    });
+  });
+  return snappedAny;
+}
+
+function placeEquipment(type, x, y){
+  const uid = "eq" + Math.random().toString(36).slice(2,9);
+  const item = { uid, type, x, y, lit:false, stirring:false };
+  if(EQUIPMENT[type].kind === "vessel"){
+    item.contents = [];
+    item.fillColor = "#cfe0e8";
+    item.fillRatio = 0;
+    item.lastReaction = null;
+  }
+  placedItems.push(item);
+  const snappedDown = trySnapChildToSupport(item);
+  const snappedUp = trySnapExistingOntoNewSupport(item);
+  renderEquipCanvas();
+  updateChecklist();
+  const snapped = snappedDown || snappedUp;
+  showToast(snapped ? `＋ ${EQUIPMENT[type].name} snapped into place` : `＋ ${EQUIPMENT[type].name} added to the bench`);
+  narrate(snapped
+    ? `You set the <b>${EQUIPMENT[type].name}</b> on the bench — it settles neatly into place on the equipment already there.`
+    : `You place a <b>${EQUIPMENT[type].name}</b> on the bench.`);
+}
+function removeEquipment(uid){
+  const item = placedItems.find(i=>i.uid===uid);
+  placedItems = placedItems.filter(i=>i.uid!==uid);
+  renderEquipCanvas();
+  updateChecklist();
+  if(item){
+    maybeStopHeating();
+    narrate(`You take the <b>${EQUIPMENT[item.type].name}</b> off the bench.`);
+  }
+}
+function dispenseIntoNearestVessel(item){
+  const vessels = placedItems.filter(i=> EQUIPMENT[i.type].kind==="vessel");
+  if(!vessels.length){ showToast("No vessel on the bench yet to add it to"); return; }
+  let nearest = vessels[0], bestDist = Infinity;
+  vessels.forEach(v=>{
+    const d = Math.hypot(v.x-item.x, v.y-item.y);
+    if(d < bestDist){ bestDist = d; nearest = v; }
+  });
+  addReagentToVessel(nearest, item.loadedReagent);
+  item.loadedReagent = null;
+}
+function nearestVesselWithContents(item){
+  const vessels = placedItems.filter(i=> EQUIPMENT[i.type].kind==="vessel" && i.contents && i.contents.length);
+  if(!vessels.length) return null;
+  let nearest = vessels[0], bestDist = Infinity;
+  vessels.forEach(v=>{
+    const d = Math.hypot(v.x-item.x, v.y-item.y);
+    if(d < bestDist){ bestDist = d; nearest = v; }
+  });
+  return nearest;
+}
+let stopwatchInterval = null;
+function formatStopwatch(sec){
+  const m = Math.floor(sec/60), s = sec%60;
+  return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+}
+function updateStopwatchLabels(){
+  placedItems.forEach(item=>{
+    if(item.type !== "stopwatch") return;
+    const labelEl = equipCanvas.querySelector(`.placed-equip[data-uid="${item.uid}"] .placed-label`);
+    if(labelEl) labelEl.textContent = `${EQUIPMENT.stopwatch.name} — ${formatStopwatch(item.elapsed||0)}${item.running ? "" : " (stopped)"}`;
+  });
+}
+function toggleStopwatch(item){
+  item.running = !item.running;
+  item.elapsed = item.elapsed || 0;
+  if(item.running){
+    showToast("⏱ Stopwatch started");
+    if(!stopwatchInterval){
+      stopwatchInterval = setInterval(()=>{
+        let anyRunning = false;
+        placedItems.forEach(i=>{ if(i.type==="stopwatch" && i.running){ i.elapsed = (i.elapsed||0)+1; anyRunning = true; } });
+        if(!anyRunning){ clearInterval(stopwatchInterval); stopwatchInterval = null; return; }
+        updateStopwatchLabels();
+      }, 1000);
+    }
+  } else {
+    showToast(`⏱ Stopped at ${formatStopwatch(item.elapsed)}`);
+  }
+}
+function toggleEquipment(uid){
+  const item = placedItems.find(i=>i.uid===uid);
+  if(!item) return;
+  if(item.type === "burner"){
+    item.lit = !item.lit;
+    if(item.lit){
+      ensureAudio(); hissSound(); startHeating();
+      showToast("🔥 Burner lit — heating the vessel");
+      narrate(`You light the <b>burner</b>. A flame catches and starts heating whatever's sitting above it.`);
+    } else {
+      showToast("Burner turned off"); maybeStopHeating();
+      narrate(`You turn off the <b>burner</b>. The flame goes out and the vessel stops heating.`);
+    }
+  } else if(item.type === "rod"){
+    item.stirring = !item.stirring;
+    if(item.stirring){
+      showToast("🥄 Stirring with the glass rod");
+      if(item.loadedReagent){
+        const reagentName = CHEM[item.loadedReagent].name;
+        narrate(`You dip the <b>glass rod</b> into the ${reagentName} and stir it into the nearest vessel.`);
+        dispenseIntoNearestVessel(item);
+      } else {
+        narrate(`You stir the mixture gently with the <b>glass rod</b>.`);
+      }
+    }
+  } else if(item.type === "dropper" || item.type === "pipette"){
+    if(item.loadedReagent){
+      const toolName = EQUIPMENT[item.type].name.toLowerCase();
+      const reagentName = CHEM[item.loadedReagent].name;
+      showToast(`💧 Dispensing with the ${toolName}`);
+      narrate(`You draw up ${reagentName} in the <b>${toolName}</b> and add a few drops to the vessel.`);
+      dispenseIntoNearestVessel(item);
+    } else {
+      showToast(`Drag a reagent onto the ${EQUIPMENT[item.type].name.toLowerCase()} first`);
+      return;
+    }
+  } else if(item.type === "ph_meter"){
+    const vessel = nearestVesselWithContents(item);
+    if(!vessel){ showToast("Dip the pH meter into a vessel with something in it"); return; }
+    const ph = estimateMixPH(vessel.contents, vessel.contents.map(()=>25));
+    item.reading = ph.toFixed(1);
+    showToast(`🧪 pH reading: ${item.reading} — ${phLabel(ph)}`);
+    narrate(`You dip the <b>pH meter</b> into the vessel — it reads pH ${item.reading} (${phLabel(ph)}).`);
+  } else if(item.type === "litmus_paper"){
+    const vessel = nearestVesselWithContents(item);
+    if(!vessel){ showToast("Dip the litmus paper into a vessel with something in it"); return; }
+    const ph = estimateMixPH(vessel.contents, vessel.contents.map(()=>25));
+    if(ph < 6.5){ item.stripLabel = "turned red (acidic)"; item.stripColor = "#c9534f"; }
+    else if(ph > 7.5){ item.stripLabel = "turned blue (basic)"; item.stripColor = "#4f6fc9"; }
+    else { item.stripLabel = "stayed purple (neutral)"; item.stripColor = "#8a5fae"; }
+    showToast(`🧻 Litmus paper ${item.stripLabel}`);
+    narrate(`You dip a strip of <b>litmus paper</b> into the vessel. It ${item.stripLabel}.`);
+  } else if(item.type === "balance"){
+    const vessel = nearestVesselWithContents(item);
+    if(!vessel){ showToast("Place a vessel with something in it on the balance"); return; }
+    item.reading = vessel.contents.length * 25;
+    showToast(`⚖️ Weighs approximately ${item.reading} g`);
+    narrate(`You set the vessel on the <b>weighing balance</b> — it reads about ${item.reading} g.`);
+  } else if(item.type === "stopwatch"){
+    const wasRunning = item.running;
+    toggleStopwatch(item);
+    narrate(wasRunning
+      ? `You stop the <b>stopwatch</b> at ${formatStopwatch(item.elapsed)}.`
+      : `You start the <b>stopwatch</b> to time the reaction.`);
+  } else if(item.type === "mortar"){
+    item.grinding = !item.grinding;
+    showToast(item.grinding ? "⚙️ Grinding with the mortar and pestle" : "Stopped grinding");
+    narrate(item.grinding
+      ? `You start grinding with the <b>mortar and pestle</b>.`
+      : `You stop grinding and set the <b>mortar and pestle</b> down.`);
+  } else if(item.type === "microscope"){
+    item.active = !item.active;
+    if(item.active){
+      const vessel = nearestVesselWithContents(item);
+      if(vessel){
+        showToast(`🔬 Observing the vessel — contents: ${vessel.contents.map(id=>CHEM[id].name).join(", ")}`);
+        narrate(`You lean in to the <b>microscope</b> and observe the vessel — it contains ${vessel.contents.map(id=>CHEM[id].name).join(", ")}.`);
+      } else {
+        showToast("🔬 Observing… nothing in view yet, add a vessel with reagents nearby");
+        narrate(`You look through the <b>microscope</b>, but there's nothing loaded on the stage yet.`);
+      }
+    } else {
+      showToast("Stepped away from the microscope");
+      narrate(`You step back from the <b>microscope</b>.`);
+    }
+  } else if(EQUIPMENT[item.type].kind === "vessel"){
+    if(!item.contents || !item.contents.length){
+      showToast("Drag a reagent onto this vessel to add it");
+    }
+    return;
+  } else {
+    return;
+  }
+  renderEquipCanvas();
+  updateChecklist();
+}
+function addReagentToVessel(vesselItem, reagentId){
+  if(!CHEM[reagentId]) return;
+  vesselItem.contents = vesselItem.contents || [];
+  if(vesselItem.contents.length >= 4) vesselItem.contents.shift();
+  vesselItem.contents.push(reagentId);
+  ensureAudio();
+
+  const vesselName = EQUIPMENT[vesselItem.type].name.toLowerCase();
+  const reagentName = CHEM[reagentId].name;
+
+  let reaction = null;
+  if(vesselItem.contents.length >= 2){
+    const qtys = vesselItem.contents.map(()=>25);
+    reaction = combineReactions(vesselItem.contents, qtys);
+    vesselItem.fillColor = reaction.color;
+    playSound(reaction);
+    updateAchievements(vesselItem.contents, reaction);
+  } else {
+    vesselItem.fillColor = CHEM[reagentId].color;
+  }
+  vesselItem.fillRatio = Math.min(0.2 + vesselItem.contents.length*0.18, 0.92);
+  vesselItem.lastReaction = reaction;
+  renderEquipCanvas();
+  updateChecklist();
+  if(!reaction || !reaction.danger){
+    showToast(`${reagentName} added${reaction ? " — " + reaction.title : ""}`);
+  }
+  if(reaction) spawnGasEffect(vesselItem, reaction);
+
+  if(reaction){
+    const dangerNote = reaction.danger ? " ⚠️ This is a genuinely hazardous real-world combination." : "";
+    narrate(`You add <b>${reagentName}</b> to the ${vesselName}. ${reaction.title} — ${reaction.desc}${dangerNote}`);
+  } else {
+    narrate(`You add <b>${reagentName}</b> to the ${vesselName}. Nothing to react with yet — add one more substance to see what happens.`);
+  }
+}
+function spawnGasEffect(item, reaction){
+  if(reaction.danger || reaction.effect === "explosion"){
+    triggerVesselExplosionFX(item, reaction);
+  }
+  const gasEffects = ["fizz","fizz-small","foam","foam-small","fog","spark","explosion","colorchange-fizz"];
+  if(!gasEffects.includes(reaction.effect)) return;
+  const count = reaction.effect==="explosion" ? 16 : reaction.effect.includes("foam") ? 9 : 6;
+  for(let i=0;i<count;i++){
+    const b = document.createElement("div");
+    b.className = "gas-bubble";
+    const spread = reaction.effect==="explosion" ? 70 : 44;
+    const jitterX = Math.random()*spread*2 - spread;
+    b.style.left = `${item.x + jitterX}px`;
+    b.style.top = `${item.y - 20}px`;
+    b.style.background = reaction.effect==="fog" ? "#dfe6ea" : (reaction.effect==="spark"||reaction.effect==="explosion") ? "#f2c14e" : "#d9d9c9";
+    equipCanvas.appendChild(b);
+    const dur = 900 + Math.random()*600;
+    b.animate([
+      { transform:"translateY(0px)", opacity:0.85 },
+      { transform:`translateY(-${55+Math.random()*(reaction.effect==="explosion"?70:35)}px)`, opacity:0 }
+    ], { duration:dur, easing:"ease-out", fill:"forwards" });
+    setTimeout(()=> b.remove(), dur+60);
+  }
+}
+function triggerVesselExplosionFX(item, reaction){
+  const el = equipCanvas.querySelector(`.placed-equip[data-uid="${item.uid}"]`);
+  if(el){
+    el.classList.remove("explode-shake");
+    void el.offsetWidth;
+    el.classList.add("explode-shake");
+  }
+  const flash = document.createElement("div");
+  flash.className = "vessel-flash";
+  flash.style.left = `${item.x}px`;
+  flash.style.top = `${item.y}px`;
+  equipCanvas.appendChild(flash);
+  setTimeout(()=> flash.remove(), 500);
+  if(reaction.effect === "explosion"){
+    bangSound();
+    showToast(`💥 It explodes! ${reaction.title}`);
+  } else {
+    showToast(`⚠️ Hazardous reaction: ${reaction.title}`);
+  }
+}
+function renderEquipCanvas(){
+  equipCanvas.querySelectorAll(".placed-equip").forEach(el=>el.remove());
+  canvasHint.style.display = placedItems.length ? "none" : "flex";
+  equipCount.textContent = `${placedItems.length} item${placedItems.length===1?"":"s"} placed`;
+  placedItems.forEach(item=>{
+    const el = document.createElement("div");
+    el.className = "placed-equip"
+      + (item.type==="burner" && item.lit ? " lit" : "")
+      + (item.type==="rod" && item.stirring ? " spin" : "")
+      + (item.type==="microscope" && item.active ? " active" : "")
+      + (item.type==="mortar" && item.grinding ? " spin" : "");
+    el.style.left = `${item.x}px`;
+    el.style.top = `${item.y}px`;
+    el.dataset.uid = item.uid;
+
+    let iconHtml, labelExtra = "";
+    if(EQUIPMENT[item.type].kind === "vessel"){
+      iconHtml = vesselSVG(item.uid, item.type, item.fillColor || "#cfe0e8", item.fillRatio || 0);
+      if(item.contents && item.contents.length){
+        labelExtra = item.lastReaction ? ` — ${item.lastReaction.title}` : ` (${item.contents.length} added)`;
+      }
+    } else if(REAGENT_CARRIERS.includes(item.type) && item.loadedReagent){
+      iconHtml = EQUIPMENT[item.type].icon.replace("</svg>", `<circle cx="20" cy="7" r="4.5" fill="${CHEM[item.loadedReagent].color}" stroke="${INK}" stroke-width="1"/></svg>`);
+      labelExtra = ` (${CHEM[item.loadedReagent].name})`;
+    } else if(item.type === "microscope" && item.active){
+      iconHtml = EQUIPMENT[item.type].icon;
+      labelExtra = " (observing)";
+    } else if(item.type === "burner"){
+      iconHtml = EQUIPMENT[item.type].icon;
+      labelExtra = item.lit ? ` — 🌡 ${temperature}°C` : "";
+    } else if(item.type === "thermo"){
+      iconHtml = EQUIPMENT[item.type].icon;
+      labelExtra = ` — 🌡 ${temperature}°C`;
+    } else if(item.type === "ph_meter"){
+      iconHtml = EQUIPMENT[item.type].icon;
+      labelExtra = item.reading !== undefined ? ` — pH ${item.reading}` : "";
+    } else if(item.type === "litmus_paper"){
+      iconHtml = item.stripColor
+        ? EQUIPMENT[item.type].icon.replace('fill="#8a5fae"', `fill="${item.stripColor}"`)
+        : EQUIPMENT[item.type].icon;
+      labelExtra = item.stripLabel ? ` — ${item.stripLabel}` : "";
+    } else if(item.type === "balance"){
+      iconHtml = EQUIPMENT[item.type].icon;
+      labelExtra = item.reading !== undefined ? ` — ${item.reading} g` : "";
+    } else if(item.type === "stopwatch"){
+      iconHtml = EQUIPMENT[item.type].icon;
+      labelExtra = ` — ${formatStopwatch(item.elapsed||0)}`;
+    } else if(item.type === "mortar" && item.grinding){
+      iconHtml = EQUIPMENT[item.type].icon;
+      labelExtra = " (grinding)";
+    } else {
+      iconHtml = EQUIPMENT[item.type].icon;
+    }
+    el.innerHTML = `<button class="remove-x" title="remove">✕</button>${iconHtml}<span class="placed-label">${EQUIPMENT[item.type].name}${labelExtra}</span>`;
+    el.querySelector(".remove-x").addEventListener("click", ev=>{ ev.stopPropagation(); removeEquipment(item.uid); });
+    el.addEventListener("click", ()=> toggleEquipment(item.uid));
+    equipCanvas.appendChild(el);
+  });
+}
+function startHeating(){
+  if(heatInterval) return;
+  heatInterval = setInterval(()=>{
+    const anyLit = placedItems.some(i=>i.type==="burner" && i.lit);
+    if(!anyLit){ clearInterval(heatInterval); heatInterval = null; return; }
+    temperature = Math.min(150, temperature + 2);
+    tempSlider.value = temperature;
+    tempReadout.textContent = `${temperature}°C`;
+    tempReadout.classList.toggle("cold", temperature<10);
+    tempReadout.classList.toggle("hot", temperature>80);
+    state.maxTemp = Math.max(state.maxTemp, temperature);
+    updateTempLabels();
+  }, 400);
+}
+function updateTempLabels(){
+  placedItems.forEach(item=>{
+    if(item.type !== "burner" && item.type !== "thermo") return;
+    const labelEl = equipCanvas.querySelector(`.placed-equip[data-uid="${item.uid}"] .placed-label`);
+    if(!labelEl) return;
+    if(item.type === "burner"){
+      labelEl.textContent = `${EQUIPMENT.burner.name}${item.lit ? ` — 🌡 ${temperature}°C` : ""}`;
+    } else {
+      labelEl.textContent = `${EQUIPMENT.thermo.name} — 🌡 ${temperature}°C`;
+    }
+  });
+}
+function maybeStopHeating(){
+  const anyLit = placedItems.some(i=>i.type==="burner" && i.lit);
+  if(!anyLit && heatInterval){ clearInterval(heatInterval); heatInterval = null; }
+}
+function updateChecklist(){
+  const hasVessel = placedItems.some(i=> EQUIPMENT[i.type].kind==="vessel");
+  const burnerLit = placedItems.some(i=> i.type==="burner" && i.lit);
+  const rodUsed = placedItems.some(i=> i.type==="rod" && i.stirring);
+  const substancesLoaded = selected.length >= 1;
+
+  checklistEl.innerHTML = [
+    ["Vessel placed", hasVessel],
+    ["Burner lit", burnerLit],
+    ["Stirring with glass rod", rodUsed],
+    ["Substances loaded", substancesLoaded]
+  ].map(([label, ok]) => `<div class="check-row${ok ? " ok" : ""}">${ok ? "✅" : "⬜"} ${label}</div>`).join("");
+
+  state.fullSetup = hasVessel && burnerLit && rodUsed && substancesLoaded;
+  if(state.fullSetup && !setupCompleteShown){
+    setupCompleteShown = true;
+    showToast("🎉 Full lab setup complete — Lab Technician unlocked!");
+    renderBadges();
+  }
+  if(!state.fullSetup) setupCompleteShown = false;
+}
+resetSetupBtn.addEventListener("click", ()=>{
+  placedItems = [];
+  if(heatInterval){ clearInterval(heatInterval); heatInterval = null; }
+  if(stopwatchInterval){ clearInterval(stopwatchInterval); stopwatchInterval = null; }
+  setupCompleteShown = false;
+  narratorLog = [];
+  renderNarrator();
+  renderEquipCanvas();
+  updateChecklist();
+  narrate("You clear the bench and start a fresh setup.");
+});
+
+/* ---- Init ---- */
+renderTabs();
+renderShelf();
+renderVesselButtons();
+applyVessel();
+renderSlots();
+renderBadges();
+renderNcertTabs();
+renderNcertList();
+populateKnowSelect();
+renderEquipPalette();
+renderReagentPalette();
+renderEquipCanvas();
+updateChecklist();
+renderNarrator();
+tempReadout.textContent = `${temperature}°C`;
+</script>
+</body>
+</html>
